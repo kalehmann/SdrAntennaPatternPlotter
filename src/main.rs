@@ -15,6 +15,25 @@
  *   You should have received a copy of the GNU Affero General Public License
  *   along with sdr_gain_tool. If not, see <https://www.gnu.org/licenses/>. */
 
+use std::thread;
+use std::time;
+
+mod rtl_power;
+
 fn main() {
-    println!("Hello, world!");
+    // Proof of concept for rtl_power module.
+    // Read 10 values, switch frequency and read another 10 values
+    let mut rtl_power = rtl_power::RtlPower::new();
+    rtl_power.start();
+
+    for _ in 0..10 {
+        thread::sleep(time::Duration::from_secs(1));
+        println!("{}", rtl_power.dbfs());
+    }
+    rtl_power.set_frequency(435.000);
+    for _ in 0..10 {
+        thread::sleep(time::Duration::from_secs(1));
+        println!("{}", rtl_power.dbfs());
+    }
+    rtl_power.stop();
 }
