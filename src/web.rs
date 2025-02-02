@@ -17,6 +17,7 @@
 
 use crate::data::RxDataHolder;
 use axum::extract::State;
+use axum::http::StatusCode;
 use axum::response::sse::{Event, Sse};
 use axum::response::IntoResponse;
 use axum::routing::{get, post};
@@ -36,9 +37,19 @@ pub fn run_web_app(data: RxDataHolder) {
     });
 }
 
-async fn change_frequency(State(data): State<RxDataHolder>, frequency: String) {
-    let val = frequency.parse::<u32>().unwrap_or(145000);
+async fn change_frequency(
+    State(data): State<RxDataHolder>,
+    frequency: String,
+) -> Result<(), StatusCode> {
+    let Ok(val) = frequency.parse::<u32>() else {
+        return Err(StatusCode::BAD_REQUEST);
+    };
+    if val < 50_000 || val > 1_500_000 {
+        return Err(StatusCode::BAD_REQUEST);
+    }
     data.set_frequency_khz(val);
+
+    Ok(())
 }
 
 async fn index() -> impl IntoResponse {
