@@ -69,7 +69,7 @@ fn start_stderr_thread(
     stderr: ChildStderr,
 ) -> thread::JoinHandle<()> {
     thread::spawn(move || {
-        println!("Stderr thread started");
+        tracing::info!("Stderr thread started");
         let reader = BufReader::new(stderr);
 
         for line in reader.lines().filter_map(|l| l.ok()) {
@@ -78,12 +78,15 @@ fn start_stderr_thread(
             }
 
             if line.starts_with("Error:") {
-                println!("'rtl_power' failed with {}. Exiting ...", line);
+                tracing::warn!("'rtl_power' failed with {}", line);
+                should_stop.store(true, Ordering::Relaxed);
+            } else if line.starts_with("No supported devices found") {
+                tracing::warn!("'rtl_power' failed with {}", line);
                 should_stop.store(true, Ordering::Relaxed);
             }
         }
 
-        println!("Stopping stderr thread");
+        tracing::info!("Stopping stderr thread");
     })
 }
 
@@ -94,7 +97,7 @@ fn start_stdout_thread(
     stdout: ChildStdout,
 ) -> thread::JoinHandle<()> {
     thread::spawn(move || {
-        println!("Stdout thread started");
+        tracing::info!("Stdout thread started");
         let mut started = false;
         let reader = BufReader::new(stdout);
 
@@ -117,13 +120,13 @@ fn start_stdout_thread(
         }
 
         if !started {
-            println!("'rtl_power' did not successfully start up!");
+            tracing::warn!("'rtl_power' did not successfully start up!");
         } else if !should_stop.load(Ordering::Relaxed) {
-            println!("'rtl_power' exited early!");
+            tracing::warn!("'rtl_power' exited early!");
         }
 
         end_process(&mut command);
-        println!("Stopping stdout thread");
+        tracing::info!("Stopping stdout thread");
     })
 }
 
@@ -167,7 +170,7 @@ impl RtlPower {
         let should_stop = self.should_stop.clone();
 
         self.control_thread = Some(thread::spawn(move || {
-            println!("Control thread started");
+            tracing::info!("Control thread started");
             let mut command = start_rtl_power(data.get_frequency_khz());
             let mut stderr_thread =
                 start_stderr_thread(should_io_stop.clone(), command.stderr.take().unwrap());
@@ -185,6 +188,11 @@ impl RtlPower {
                     stdout_thread.join().unwrap();
                     frequency_khz.store(new_freq, Ordering::Relaxed);
                     should_io_stop.store(false, Ordering::Relaxed);
+                    tracing::info!(
+                        "Changing frequency from {:.3} MHz to {:.3} MHz",
+                        (current_freq as f64) / 1000.0,
+                        (new_freq as f64) / 1000.0,
+                    );
                     command = start_rtl_power(new_freq);
                     stderr_thread =
                         start_stderr_thread(should_io_stop.clone(), command.stderr.take().unwrap());
@@ -196,7 +204,7 @@ impl RtlPower {
             should_io_stop.store(true, Ordering::Relaxed);
             stderr_thread.join().unwrap();
             stdout_thread.join().unwrap();
-            println!("Stopping control thread");
+            tracing::info!("Stopping control thread");
         }));
     }
 }

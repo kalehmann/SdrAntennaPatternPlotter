@@ -15,6 +15,8 @@
  *   You should have received a copy of the GNU Affero General Public License
  *   along with sdr_gain_tool. If not, see <https://www.gnu.org/licenses/>. */
 
+use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
+
 mod data;
 mod rtl_power;
 mod web;
@@ -22,7 +24,16 @@ mod web;
 fn main() {
     let data = data::RxDataHolder::new();
     let mut rtlpwr = rtl_power::RtlPower::new(data.clone());
-    rtlpwr.start();
 
+    tracing_subscriber::registry()
+        .with(
+            tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| {
+                format!("{}=debug,tower_http=debug", env!("CARGO_CRATE_NAME")).into()
+            }),
+        )
+        .with(tracing_subscriber::fmt::layer())
+        .init();
+
+    rtlpwr.start();
     web::run_web_app(data);
 }

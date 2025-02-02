@@ -27,12 +27,14 @@ use std::convert::Infallible;
 use std::time::Duration;
 use tokio::runtime::Runtime;
 use tokio_stream::StreamExt as _;
+use tower_http::trace::TraceLayer;
 
 pub fn run_web_app(data: RxDataHolder) {
     let runtime = Runtime::new().unwrap();
 
     runtime.block_on(async {
         let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
+        tracing::info!("Listening on 0.0.0.0:3000");
         axum::serve(listener, router(data)).await.unwrap();
     });
 }
@@ -80,4 +82,5 @@ fn router(data: RxDataHolder) -> Router {
         .route("/frequency", post(change_frequency))
         .route("/sse", get(sse_handler))
         .with_state(data)
+        .layer(TraceLayer::new_for_http())
 }
