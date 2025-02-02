@@ -18,22 +18,23 @@
 use std::thread;
 use std::time;
 
+mod data;
 mod rtl_power;
 
 fn main() {
     // Proof of concept for rtl_power module.
     // Read 10 values, switch frequency and read another 10 values
-    let mut rtl_power = rtl_power::RtlPower::new();
-    rtl_power.start();
-
+    let data = data::RxDataHolder::new();
+    let mut rtlpwr = rtl_power::RtlPower::new(data.clone());
+    rtlpwr.start();
     for _ in 0..10 {
         thread::sleep(time::Duration::from_secs(1));
-        println!("{}", rtl_power.dbfs());
+        println!("{}", data.get_dbfs());
     }
-    rtl_power.set_frequency(435.000);
+    data.set_frequency_khz(435000);
     for _ in 0..10 {
         thread::sleep(time::Duration::from_secs(1));
-        println!("{}", rtl_power.dbfs());
+        println!("{}", data.get_dbfs());
     }
-    rtl_power.stop();
+    rtlpwr.stop();
 }

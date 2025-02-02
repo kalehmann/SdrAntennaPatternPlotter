@@ -15,9 +15,10 @@
  *   You should have received a copy of the GNU Affero General Public License
  *   along with sdr_gain_tool. If not, see <https://www.gnu.org/licenses/>. */
 
+use crate::data::RxDataHolder;
 use std::io::{BufRead, BufReader};
 use std::process::{Child, ChildStderr, ChildStdout, Command, Stdio};
-use std::sync::atomic::{AtomicBool, AtomicU16, AtomicU32, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 use std::sync::Arc;
 use std::thread;
 use std::time;
@@ -49,10 +50,10 @@ fn process_running(proc: &mut Child) -> bool {
     }
 }
 
-fn start_rtl_power(freq: f64) -> Child {
+fn start_rtl_power(freq_khz: u32) -> Child {
     Command::new("rtl_power")
         .arg("-f")
-        .arg(format!("{:.1}M:{:.1}M:1k", freq - 0.1, freq + 0.1))
+        .arg(format!("{}K:{}K:1k", freq_khz - 100, freq_khz + 100))
         .arg("-i")
         .arg("1")
         .arg("-g")
@@ -63,116 +64,151 @@ fn start_rtl_power(freq: f64) -> Child {
         .expect("Could not start 'rtl_power'. Is it in $PATH ?")
 }
 
-pub struct RtlPower {
-    frequency_mhz: AtomicU32,
-    latest_dbfs: Arc<AtomicU16>,
+fn start_stderr_thread(
     should_stop: Arc<AtomicBool>,
-    stderr_thread: Option<thread::JoinHandle<()>>,
-    stdout_thread: Option<thread::JoinHandle<()>>,
+    stderr: ChildStderr
+) -> thread::JoinHandle<()> {
+    thread::spawn(move || {
+	println!("Stderr thread started");
+	let reader = BufReader::new(stderr);
+
+	for line in reader.lines().filter_map(|l| l.ok()) {
+	    if should_stop.load(Ordering::Relaxed) {
+		break;
+	    }
+
+	    if line.starts_with("Error:") {
+		println!("'rtl_power' failed with {}. Exiting ...", line);
+		should_stop.store(true, Ordering::Relaxed);
+	    }
+	}
+
+	println!("Stopping stderr thread");
+    })
+}
+
+fn start_stdout_thread(
+    should_stop: Arc<AtomicBool>,
+    data: RxDataHolder,
+    mut command: Child,
+    stdout: ChildStdout
+) -> thread::JoinHandle<()> {
+    thread::spawn(move || {
+	println!("Stdout thread started");
+	let mut started = false;
+	let reader = BufReader::new(stdout);
+
+	for line in reader.lines().filter_map(|l| l.ok()) {
+	    if should_stop.load(Ordering::Relaxed) {
+		break;
+	    }
+
+	    // Skip date, time and so on ...
+	    let values = line
+		.split(", ")
+		.skip(6)
+		.filter_map(|v| v.parse::<f64>().ok())
+		// Integer cast is need here as floats are not ordered.
+		.map(|v| (v * 100.0) as i32);
+	    if let Some(val) = values.max() {
+		data.set_dbfs((val as f64) / 100.0);
+		started = true;
+	    }
+	}
+
+	if !started {
+	    println!("'rtl_power' did not successfully start up!");
+	} else if !should_stop.load(Ordering::Relaxed) {
+	    println!("'rtl_power' exited early!");
+	}
+
+	end_process(&mut command);
+	println!("Stopping stdout thread");
+    })
+}
+
+
+pub struct RtlPower {
+    control_thread: Option<thread::JoinHandle<()>>,
+    data: RxDataHolder,
+    frequency_khz: Arc<AtomicU32>,
+    should_stop: Arc<AtomicBool>,
 }
 
 impl RtlPower {
-    pub fn new() -> RtlPower {
-        RtlPower {
-            frequency_mhz: AtomicU32::new(145_000),
-            latest_dbfs: Arc::new(AtomicU16::new(0)),
-            stderr_thread: None,
-            stdout_thread: None,
-            should_stop: Arc::new(AtomicBool::new(false)),
-        }
+    pub fn new(data: RxDataHolder) -> RtlPower {
+	let frequency = data.get_frequency_khz();
+
+        RtlPower{
+	    control_thread: None,
+	    data: data,
+	    frequency_khz: Arc::new(AtomicU32::new(frequency)),
+	    should_stop: Arc::new(AtomicBool::new(false)),
+	}
     }
 
     pub fn start(&mut self) {
-        self.latest_dbfs.store(0, Ordering::Relaxed);
+        self.data.set_dbfs(0.0);
         self.should_stop.store(false, Ordering::Relaxed);
-        let freq = f64::from(self.frequency_mhz.load(Ordering::Relaxed)) / 100.0;
-        let mut command = start_rtl_power(freq);
-        self.start_stderr_thread(command.stderr.take().unwrap());
-
-        let stdout = command.stdout.take().unwrap();
-        self.start_stdout_thread(command, stdout);
-    }
-
-    pub fn dbfs(&self) -> f64 {
-        let compressed_val = self.latest_dbfs.load(Ordering::Relaxed);
-
-        (compressed_val as f64) * -0.01
-    }
-
-    pub fn set_frequency(&mut self, fmhz: f64) {
-        let frequency = (fmhz * 100.0) as u32;
-        self.stop();
-        self.frequency_mhz.store(frequency, Ordering::Relaxed);
-        self.start();
+	self.start_control_thread();
     }
 
     pub fn stop(&mut self) {
         self.should_stop.store(true, Ordering::Relaxed);
-
-        if let Some(thread) = self.stderr_thread.take() {
-            thread.join().unwrap();
-        }
-        if let Some(thread) = self.stdout_thread.take() {
+        if let Some(thread) = self.control_thread.take() {
             thread.join().unwrap();
         }
     }
 
-    fn start_stderr_thread(&mut self, stderr: ChildStderr) {
-        let should_stop = self.should_stop.clone();
+    fn start_control_thread(&mut self) {
+	let data = self.data.clone();
+	let frequency_khz = self.frequency_khz.clone();
+	let should_io_stop = Arc::new(AtomicBool::new(false));
+	let should_stop = self.should_stop.clone();
 
-        self.stderr_thread = Some(thread::spawn(move || {
-            println!("Stderr thread started");
-            let reader = BufReader::new(stderr);
+	self.control_thread = Some(thread::spawn(move || {
+	    println!("Control thread started");
+            let mut command = start_rtl_power(data.get_frequency_khz());
+            let mut stderr_thread = start_stderr_thread(
+		should_io_stop.clone(),
+		command.stderr.take().unwrap(),
+	    );
+	    let mut stdout = command.stdout.take().unwrap();
+            let mut stdout_thread = start_stdout_thread(
+		should_io_stop.clone(),
+		data.clone(),
+		command,
+		stdout,
+	    );
 
-            for line in reader.lines().filter_map(|l| l.ok()) {
-                if should_stop.load(Ordering::Relaxed) {
-                    break;
-                }
-
-                if line.starts_with("Error:") {
-                    println!("'rtl_power' failed with {}. Exiting ...", line);
-                    should_stop.store(true, Ordering::Relaxed);
-                }
-            }
-
-            println!("Stderr thread exited");
-        }));
-    }
-
-    fn start_stdout_thread(&mut self, mut command: Child, stdout: ChildStdout) {
-        let latest_dbfs = self.latest_dbfs.clone();
-        let should_stop = self.should_stop.clone();
-
-        self.stdout_thread = Some(thread::spawn(move || {
-            println!("Stdout thread started");
-            let mut started = false;
-            let reader = BufReader::new(stdout);
-
-            for line in reader.lines().filter_map(|l| l.ok()) {
-                if should_stop.load(Ordering::Relaxed) {
-                    break;
-                }
-
-                // Skip date, time and so on ...
-                let values = line
-                    .split(", ")
-                    .skip(5)
-                    .filter_map(|v| v.parse::<f64>().ok())
-                    .map(|v| (v * -100.0) as u16);
-                if let Some(val) = values.max() {
-                    latest_dbfs.store(val, Ordering::Relaxed);
-                    started = true;
-                }
-            }
-
-            if !started {
-                println!("'rtl_power' did not successfully start up!");
-            } else if !should_stop.load(Ordering::Relaxed) {
-                println!("'rtl_power' exited early!");
-            }
-
-            end_process(&mut command);
-            println!("Stdout thread exited");
-        }));
+	    while !should_stop.load(Ordering::Relaxed) {
+		let current_freq = frequency_khz.load(Ordering::Relaxed);
+		let new_freq = data.get_frequency_khz();
+		thread::sleep(time::Duration::from_millis(100));
+		if current_freq != new_freq {
+		    should_io_stop.store(true, Ordering::Relaxed);
+		    stderr_thread.join().unwrap();
+		    stdout_thread.join().unwrap();
+		    frequency_khz.store(new_freq, Ordering::Relaxed);
+		    should_io_stop.store(false, Ordering::Relaxed);
+		    command = start_rtl_power(new_freq);
+		    stderr_thread = start_stderr_thread(
+			should_io_stop.clone(),
+			command.stderr.take().unwrap(),
+		    );
+		    stdout = command.stdout.take().unwrap();
+		    stdout_thread = start_stdout_thread(
+			should_io_stop.clone(),
+			data.clone(),
+			command,
+			stdout,
+		    );
+		}
+	    }
+	    should_io_stop.store(true, Ordering::Relaxed);
+	    stderr_thread.join().unwrap();
+	    stdout_thread.join().unwrap();
+	    println!("Stopping control thread");
+	}));
     }
 }
