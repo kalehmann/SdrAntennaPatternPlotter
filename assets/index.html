@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <style>
+      body {
+          background: #efd6e5;
+          color: #0f0f0f;
+          font-family: sans-serif;
+          font-size: 18px;
+          margin: 2em auto;
+          max-width: 650px;
+      }
+      label {
+          display: block;
+      }
+
+      @media (prefers-color-scheme: dark) {
+          body {
+              background: #0f0f0f;
+              color: #efd6e5;
+          }
+      }
+    </style>
+  </head>
+  <body>
+    <h1>SDR Gain Tool</h1>
+    <form>
+      <label>
+        Frequency (kHz):
+        <input type="number" id="freq" value="145000" />
+      </label>
+      <input type="submit" id="sub" value="Change frequency" />
+    </form>
+    <p>
+      Value: <span id="val">0.0</span>dbFS
+    </p>
+    <script>
+      const evtSource = new EventSource("/sse");
+      const el = document.getElementById('val');
+      evtSource.onmessage = (event) => {
+          el.textContent = `${event.data}`;
+      };
+
+      const form = document.querySelector('form');
+      form.addEventListener('submit', (event) => {
+          const frequency = form.querySelector('#freq').value;
+          event.preventDefault();
+
+          const response = fetch('/frequency', {
+              body: `${frequency}`,
+              method: "POST",
+          });
+      });
+    </script>
+  </body>
+</html>

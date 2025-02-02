@@ -16,7 +16,7 @@
  *   along with sdr_gain_tool. If not, see <https://www.gnu.org/licenses/>. */
 
 use std::sync::atomic::{AtomicU16, AtomicU32, Ordering};
-use std::sync::{Arc};
+use std::sync::Arc;
 
 #[derive(Clone)]
 pub struct RxDataHolder {
@@ -26,10 +26,10 @@ pub struct RxDataHolder {
 
 impl RxDataHolder {
     pub fn new() -> RxDataHolder {
-	RxDataHolder {
-	    frequency_khz: Arc::new(AtomicU32::new(145_000)),
-	    latest_dbfs: Arc::new(AtomicU16::new(0)),
-	}
+        RxDataHolder {
+            frequency_khz: Arc::new(AtomicU32::new(145_000)),
+            latest_dbfs: Arc::new(AtomicU16::new(0)),
+        }
     }
 
     pub fn get_dbfs(&self) -> f64 {
@@ -39,7 +39,7 @@ impl RxDataHolder {
     }
 
     pub fn get_frequency_khz(&self) -> u32 {
-	self.frequency_khz.load(Ordering::Relaxed)
+        self.frequency_khz.load(Ordering::Relaxed)
     }
 
     pub fn set_dbfs(&self, val: f64) {
@@ -49,6 +49,6 @@ impl RxDataHolder {
     }
 
     pub fn set_frequency_khz(&self, val: u32) {
-	self.frequency_khz.store(val, Ordering::Relaxed);
+        self.frequency_khz.store(val, Ordering::Relaxed);
     }
 }
