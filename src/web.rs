@@ -22,6 +22,7 @@ use axum::response::sse::{Event, Sse};
 use axum::response::IntoResponse;
 use axum::routing::{get, post};
 use axum::Router;
+use clap_port_flag::Port;
 use futures::stream::{self, Stream};
 use std::convert::Infallible;
 use std::time::Duration;
@@ -29,12 +30,13 @@ use tokio::runtime::Runtime;
 use tokio_stream::StreamExt as _;
 use tower_http::trace::TraceLayer;
 
-pub fn run_web_app(data: RxDataHolder) {
+pub fn run_web_app(data: RxDataHolder, port: Port) {
     let runtime = Runtime::new().unwrap();
 
     runtime.block_on(async {
-        let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
-        tracing::info!("Listening on 0.0.0.0:3000");
+        let listener = port.bind_or(8000).unwrap();
+        let listener = tokio::net::TcpListener::from_std(listener).unwrap();
+        tracing::info!("Listening on {}", listener.local_addr().unwrap());
         axum::serve(listener, router(data)).await.unwrap();
     });
 }

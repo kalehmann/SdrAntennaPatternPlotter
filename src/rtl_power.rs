@@ -50,14 +50,14 @@ fn process_running(proc: &mut Child) -> bool {
     }
 }
 
-fn start_rtl_power(freq_khz: u32) -> Child {
+fn start_rtl_power(freq_khz: u32, gain: i16) -> Child {
     Command::new("rtl_power")
         .arg("-f")
         .arg(format!("{}K:{}K:1k", freq_khz - 100, freq_khz + 100))
         .arg("-i")
         .arg("1")
         .arg("-g")
-        .arg("0")
+        .arg(format!("{}", gain))
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .spawn()
@@ -134,17 +134,19 @@ pub struct RtlPower {
     control_thread: Option<thread::JoinHandle<()>>,
     data: RxDataHolder,
     frequency_khz: Arc<AtomicU32>,
+    gain: i16,
     should_stop: Arc<AtomicBool>,
 }
 
 impl RtlPower {
-    pub fn new(data: RxDataHolder) -> RtlPower {
+    pub fn new(data: RxDataHolder, gain: i16) -> RtlPower {
         let frequency = data.get_frequency_khz();
 
         RtlPower {
             control_thread: None,
             data: data,
             frequency_khz: Arc::new(AtomicU32::new(frequency)),
+            gain: gain,
             should_stop: Arc::new(AtomicBool::new(false)),
         }
     }
@@ -164,6 +166,7 @@ impl RtlPower {
     }
 
     fn start_control_thread(&mut self) {
+        let gain = self.gain;
         let data = self.data.clone();
         let frequency_khz = self.frequency_khz.clone();
         let should_io_stop = Arc::new(AtomicBool::new(false));
@@ -171,7 +174,7 @@ impl RtlPower {
 
         self.control_thread = Some(thread::spawn(move || {
             tracing::info!("Control thread started");
-            let mut command = start_rtl_power(data.get_frequency_khz());
+            let mut command = start_rtl_power(data.get_frequency_khz(), gain);
             let mut stderr_thread =
                 start_stderr_thread(should_io_stop.clone(), command.stderr.take().unwrap());
             let mut stdout = command.stdout.take().unwrap();
@@ -193,7 +196,7 @@ impl RtlPower {
                         (current_freq as f64) / 1000.0,
                         (new_freq as f64) / 1000.0,
                     );
-                    command = start_rtl_power(new_freq);
+                    command = start_rtl_power(new_freq, gain);
                     stderr_thread =
                         start_stderr_thread(should_io_stop.clone(), command.stderr.take().unwrap());
                     stdout = command.stdout.take().unwrap();

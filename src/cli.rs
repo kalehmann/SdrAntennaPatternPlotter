@@ -16,32 +16,14 @@
  *   along with sdr_gain_tool. If not, see <https://www.gnu.org/licenses/>. */
 
 use clap::Parser;
-use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
-mod cli;
-mod data;
-mod rtl_power;
-mod web;
-
-fn main() {
-    let args = cli::Args::parse();
-    let data = data::RxDataHolder::new();
-    let mut rtlpwr = rtl_power::RtlPower::new(data.clone(), args.gain);
-
-    tracing_subscriber::registry()
-        .with(
-            tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| {
-                format!(
-                    "{}={1},tower_http={1}",
-                    env!("CARGO_CRATE_NAME"),
-                    args.verbose
-                )
-                .into()
-            }),
-        )
-        .with(tracing_subscriber::fmt::layer())
-        .init();
-
-    rtlpwr.start();
-    web::run_web_app(data, args.port);
+#[derive(Parser)]
+#[command(version, about, long_about = None)]
+pub struct Args {
+    #[arg(long, default_value_t = 1)]
+    pub gain: i16,
+    #[clap(flatten)]
+    pub port: clap_port_flag::Port,
+    #[command(flatten)]
+    pub verbose: clap_verbosity_flag::Verbosity,
 }
