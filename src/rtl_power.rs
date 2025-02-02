@@ -73,6 +73,7 @@ fn start_stderr_thread(
         let reader = BufReader::new(stderr);
 
         for line in reader.lines().filter_map(|l| l.ok()) {
+            tracing::debug!("rtl_power: {}", line);
             if should_stop.load(Ordering::Relaxed) {
                 break;
             }
