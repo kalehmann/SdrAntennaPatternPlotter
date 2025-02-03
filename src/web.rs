@@ -59,7 +59,7 @@ async fn change_frequency(
 async fn index() -> impl IntoResponse {
     (
         [("content-type", "html")],
-        include_str!("../assets/index.html"),
+        include_str!("../frontend/build/index.html"),
     )
 }
 

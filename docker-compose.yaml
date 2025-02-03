@@ -1,0 +1,17 @@
+---
+x-python-service: &node-service
+        build:
+                context: "."
+                dockerfile: ".docker/dev.Dockerfile"
+                target: "node_dev"
+        volumes:
+                - ".:/sdr_gain_tool:rw"
+        working_dir: "/sdr_gain_tool/frontend"
+
+services:
+        yarn:
+                <<: *node-service
+                entrypoint: "/usr/local/bin/yarn"
+                ports:
+                        - "5173:5173"
+...

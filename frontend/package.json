@@ -1,0 +1,19 @@
+{
+    "name": "sdr_gain_tool-frontend",
+    "version": "0.0.1",
+    "author": "Karsten Lehmann <mail@kalehmann.de>",
+    "description": "Web-frontend for sdr_gain_tool",
+    "license": "AGPL-3.0-or-later",
+    "scripts": {
+        "build": "vite build",
+        "dev": "vite dev"
+    },
+    "devDependencies": {
+        "@sveltejs/adapter-static": "^3.0.0",
+        "@sveltejs/kit": "^2.0.0",
+        "@sveltejs/vite-plugin-svelte": "^4.0.0",
+        "svelte": "^5.0.0",
+        "vite": "^5.0.0"
+    },
+    "type": "module"
+}
