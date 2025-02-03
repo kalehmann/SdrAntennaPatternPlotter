@@ -1,5 +1,5 @@
 <script lang="ts">
-    let freq_khz: Number = 145000;
+    let freq_khz: number = 145000;
 
     const onSubmit = (event) => {
         const formData = new FormData(event.target);
