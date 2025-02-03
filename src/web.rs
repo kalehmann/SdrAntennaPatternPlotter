@@ -36,7 +36,7 @@ pub fn run_web_app(data: RxDataHolder, port: Port) {
     runtime.block_on(async {
         let listener = port.bind_or(8000).unwrap();
         let listener = tokio::net::TcpListener::from_std(listener).unwrap();
-        tracing::info!("Listening on {}", listener.local_addr().unwrap());
+        tracing::info!("Listening on http://{}", listener.local_addr().unwrap());
         axum::serve(listener, router(data)).await.unwrap();
     });
 }
