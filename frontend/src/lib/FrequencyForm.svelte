@@ -3,8 +3,8 @@
 
     const onSubmit = (event) => {
         const formData = new FormData(event.target);
-        const frequency = formData.get('freq');
-        fetch('/frequency', {
+        const frequency = formData.get("freq");
+        fetch("/frequency", {
             body: `${frequency}`,
             method: "POST",
         });

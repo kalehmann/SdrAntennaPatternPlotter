@@ -1,6 +1,6 @@
 <script lang="ts">
     const evtSource: EventSource = new EventSource("/sse");
-    export let dbfs: string = '0.0';
+    export let dbfs: string = "0.0";
     evtSource.onmessage = (event) => {
         dbfs = `${event.data}`;
     };
