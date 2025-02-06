@@ -1,7 +1,14 @@
 <script lang="ts">
+    interface Props {
+        value: (value: number) => void;
+    }
+
+    let { value = () => {} }: Props = $props();
+
     const evtSource: EventSource = new EventSource("/sse");
-    export let dbfs: string = "0.0";
+    let dbfs: string = $state("0.0");
     evtSource.onmessage = (event) => {
+        value(parseFloat(event.data));
         dbfs = `${event.data}`;
     };
 </script>
