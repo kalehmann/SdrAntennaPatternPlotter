@@ -4,7 +4,7 @@
     interface Props {
         children: Snippet;
         done: () => void;
-        measuring_period: number;
+        measuring_period?: number;
         start: () => void;
         stop: () => void;
     }
@@ -18,7 +18,7 @@
     }: Props = $props();
 
     let duration: number = $state(10.0);
-    let interval: ReturnType<typeof setInterval> = null;
+    let interval: ReturnType<typeof setInterval> | undefined = undefined;
     let running: boolean = $state(false);
 
     function onClick() {
@@ -29,16 +29,16 @@
                 if (duration < 0.1) {
                     done();
                     clearInterval(interval);
-                    interval = null;
+                    interval = undefined;
                     running = false;
                 }
             }, 100);
             running = true;
             start();
         } else {
-            if (interval !== null) {
+            if (interval !== undefined) {
                 clearInterval(interval);
-                interval = null;
+                interval = undefined;
             }
             running = false;
             stop();

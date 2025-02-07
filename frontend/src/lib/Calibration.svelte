@@ -5,7 +5,7 @@
     import Modal from "$lib/Modal.svelte";
 
     interface Props {
-        next: (result: number) => void;
+        next: () => void;
     }
 
     let { next = () => {} }: Props = $props();

@@ -64,10 +64,12 @@ export class Compass {
                 );
             if (
                 window.DeviceOrientationEvent &&
+                //@ts-expect-error Non standard method on mobile Safari
                 window.DeviceOrientationEvent.requestPermission
             ) {
+                //@ts-expect-error Non standard method on mobile Safari
                 window.DeviceOrientationEvent.requestPermission().then(
-                    (permissionState) => {
+                    (permissionState: string) => {
                         if (permissionState === "granted") {
                             installOneshotHandler();
                         }
@@ -77,17 +79,23 @@ export class Compass {
                 installOneshotHandler();
             }
         }
-    }
+    };
 
-    private calibrationHandler = (event: DeviceOrientation): void => {
+    private calibrationHandler = (event: DeviceOrientationEvent): void => {
+        if (event.alpha === null) {
+            return;
+        }
         this.calibrationData.push(event.alpha);
     };
 
-    private compassHandler = (event: DeviceOrientation): void => {
+    private compassHandler = (event: DeviceOrientationEvent): void => {
+        if (event.alpha === null) {
+            return;
+        }
         this.value = event.alpha;
     };
 
-    private oneShotHandler = (event: DeviceOrientation): void => {
+    private oneShotHandler = (event: DeviceOrientationEvent): void => {
         this.available = event.alpha !== null;
     };
 }

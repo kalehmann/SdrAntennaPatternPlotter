@@ -4,13 +4,13 @@
         y: number;
     }
     interface Props {
-        compass: number;
-        marker: number;
-        marker_size: number;
-        measurements;
+        compass?: number;
+        marker?: number;
+        marker_size?: number;
+        measurements: Array<[number, number]>;
         ref: number;
-        show_compass: boolean;
-        show_marker: boolean;
+        show_compass?: boolean;
+        show_marker?: boolean;
     }
     let {
         compass = 0.0,
@@ -59,7 +59,7 @@
     let minDbfs = $derived.by(() => {
         return Math.min(...measurements.map(([, dbfs]) => dbfs), ref);
     });
-    let points = $derived.by(() => {
+    let points: Array<[number, number]> = $derived.by(() => {
         return measurements.map(([angle, dbfs]) => {
             return [angle, dbfs2db(dbfs, ref) - dbfs2db(maxDbfs, ref)];
         });
@@ -147,7 +147,6 @@
     {/each}
     {#each { length: 4 }, i}
         <text
-            alignment-baseline="top"
             fill="#000"
             filter="url(#solid)"
             font-size="2.5pt"

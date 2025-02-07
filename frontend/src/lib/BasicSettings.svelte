@@ -6,8 +6,14 @@
 
     let { start = () => {} }: Props = $props();
 
-    const onSubmit = (event) => {
+    const onSubmit = (event: SubmitEvent) => {
         event.preventDefault();
+        if (
+            event.target === null ||
+            event.target instanceof HTMLFormElement === false
+        ) {
+            return;
+        }
         const formData = new FormData(event.target);
         const frequency = formData.get("freq");
         fetch("/frequency", {

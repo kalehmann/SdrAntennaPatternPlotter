@@ -24,5 +24,5 @@
     {/if}
 </main>
 <footer class="flex-none mb-5">
-    <Progress current={step} total="4" />
+    <Progress current={step} total={4} />
 </footer>

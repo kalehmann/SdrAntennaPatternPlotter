@@ -2,9 +2,14 @@
     import { appState } from "$lib/state.svelte.ts";
     import GainPattern from "$lib/GainPattern.svelte";
 
-    function downloadCsv(filename: string, contents: Array<Array>): void {
+    function downloadCsv(
+        filename: string,
+        contents: Array<Array<number | string>>,
+    ): void {
         const data = encodeURIComponent(
-            contents.map((line: Array): string => line.join(",")).join("\n"),
+            contents
+                .map((line: Array<number | string>): string => line.join(","))
+                .join("\n"),
         );
         const el = document.createElement("a");
         el.setAttribute("download", filename);
@@ -27,7 +32,10 @@
     async function onDownloadPng() {
         const svg = document
             .getElementById("pattern-wrapper")
-            .querySelector("svg");
+            ?.querySelector("svg");
+        if (svg === null || svg === undefined) {
+            return;
+        }
         const date = new Date();
         const filename = `antenna-${date.toISOString().split("T")[0]}.png`;
         const height = svg.clientHeight;
@@ -44,7 +52,11 @@
         const canvas = document.createElement("canvas");
         canvas.height = height * 2;
         canvas.width = width * 2;
-        canvas.getContext("2d").drawImage(img, 0, 0, width * 2, height * 2);
+        const context = canvas.getContext("2d");
+        if (context === null) {
+            return;
+        }
+        context.drawImage(img, 0, 0, width * 2, height * 2);
         const dataUrl = await canvas.toDataURL("image/png", 1.0);
 
         const el = document.createElement("a");
