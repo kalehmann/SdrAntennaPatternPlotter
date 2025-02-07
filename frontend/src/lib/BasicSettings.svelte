@@ -1,11 +1,10 @@
 <script lang="ts">
+    import { appState } from "$lib/state.svelte.ts";
     interface Props {
         start: () => void;
     }
 
     let { start = () => {} }: Props = $props();
-    let freq_khz: number = $state(145000);
-    let measurement_count: number = $state(12);
 
     const onSubmit = (event) => {
         event.preventDefault();
@@ -39,7 +38,7 @@
                        focus-visible:bg-white
                        mb-2"
                 type="number"
-                bind:value={freq_khz}
+                bind:value={appState.frequency}
             />
         </label>
         <label class="block">
@@ -58,12 +57,12 @@
                        focus-visible:bg-white
                        mb-2"
                 type="number"
-                bind:value={measurement_count}
+                bind:value={appState.steps}
             />
         </label>
         <p>
             This will have a measurement at every {(
-                360 / measurement_count
+                360 / appState.steps
             ).toFixed(2)} &deg
         </p>
         <div class="flex flex-row justify-center">

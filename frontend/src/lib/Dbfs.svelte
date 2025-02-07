@@ -13,4 +13,4 @@
     };
 </script>
 
-<p>{dbfs}dbFS</p>
+<span>{dbfs}dbFS</span>

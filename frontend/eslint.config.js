@@ -40,6 +40,7 @@ export default [
         ],
         languageOptions: {
             parserOptions: {
+                parser: ts.parser,
                 svelteConfig,
             },
         },

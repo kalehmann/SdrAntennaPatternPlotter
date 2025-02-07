@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { appState } from "$lib/state.svelte.ts";
     import Dbfs from "$lib/Dbfs.svelte";
     import MeasureButton from "$lib/MeasureButton.svelte";
     import Modal from "$lib/Modal.svelte";
@@ -22,12 +23,13 @@
 </script>
 
 <div class="flex m-5 flex-row justify-center">
-    <Dbfs value={onValue} />
+    Current value: <Dbfs value={onValue} />
 </div>
 <div class="flex flex-row justify-center">
     <MeasureButton
         done={() => {
-            next(result);
+            appState.reference_dbfs = result;
+            next();
         }}
         start={() => {
             calibrating = true;
@@ -35,8 +37,10 @@
         stop={() => {
             calibrating = false;
             result = -100.0;
-        }}>Calibrate</MeasureButton
+        }}
     >
+        Calibrate
+    </MeasureButton>
 
     {#if showModal}
         <Modal>
@@ -54,8 +58,10 @@
                    hover:bg-violet-600"
                 onclick={() => {
                     showModal = false;
-                }}>Ok</button
+                }}
             >
+                Ok
+            </button>
         </Modal>
     {/if}
 </div>

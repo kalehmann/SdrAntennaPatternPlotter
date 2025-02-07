@@ -4,6 +4,7 @@
     interface Props {
         children: Snippet;
         done: () => void;
+        measuring_period: number;
         start: () => void;
         stop: () => void;
     }
@@ -11,6 +12,7 @@
     let {
         children,
         done = () => {},
+        measuring_period = 10.0,
         start = () => {},
         stop = () => {},
     }: Props = $props();
@@ -21,7 +23,7 @@
 
     function onClick() {
         if (!running) {
-            duration = 10.0;
+            duration = measuring_period;
             interval = setInterval(function () {
                 duration -= 0.1;
                 if (duration < 0.1) {
@@ -40,7 +42,7 @@
             }
             running = false;
             stop();
-            duration = 10.0;
+            duration = measuring_period;
         }
     }
 </script>
