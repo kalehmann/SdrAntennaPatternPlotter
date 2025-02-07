@@ -1,5 +1,6 @@
 <script lang="ts">
     import { appState } from "$lib/state.svelte.ts";
+    import { Compass } from "$lib/compass.svelte.ts";
     import Dbfs from "$lib/Dbfs.svelte";
     import GainPattern from "$lib/GainPattern.svelte";
     import MeasureButton from "$lib/MeasureButton.svelte";
@@ -8,10 +9,11 @@
     interface Props {
         next: () => void;
     }
-
     let { next = () => {} }: Props = $props();
-    let currentStep = $state(0.0);
-    let currentValue = -100.0;
+
+    const compass: Compass = new Compass();
+    let currentStep: number = $state(0.0);
+    let currentValue: number = -100.0;
     let measuring: boolean = false;
     let showModal: boolean = $state(true);
     const stepSize = 360 / appState.steps;
@@ -19,6 +21,9 @@
     function onMeasureDone() {
         const angle = currentStep * stepSize;
         appState.measurements.push([angle, currentValue]);
+        if (currentStep === 0) {
+            compass.finishCalibration();
+        }
         currentStep += 1;
         if (currentStep === appState.steps) {
             next();
@@ -29,10 +34,16 @@
     function onMeasureStart() {
         currentValue = -100.0;
         measuring = true;
+        if (currentStep === 0) {
+            compass.startCalibration();
+        }
     }
     function onMeasureStop() {
         currentValue = -100.0;
         measuring = false;
+        if (currentStep === 0) {
+            compass.stopCalibration();
+        }
     }
     function onValue(value: number) {
         if (measuring && value > currentValue) {
@@ -51,10 +62,12 @@
         Current value: &nbsp <Dbfs value={onValue} />
     </div>
     <GainPattern
+        compass={compass.direction}
         marker={currentStep * stepSize}
         marker_size={stepSize / 2}
         measurements={appState.measurements}
         ref={appState.reference_dbfs}
+        show_compass={compass.available && currentStep > 0}
     />
     <div class="flex flex-row justify-center">
         <MeasureButton
@@ -74,6 +87,9 @@
             Now connect the signal source to the antenna that should be
             measured.
         </p>
+        {#if compass.available}
+            <p>The compass will be calibrated during the first measurement.</p>
+        {/if}
 
         <button
             class="mt-5

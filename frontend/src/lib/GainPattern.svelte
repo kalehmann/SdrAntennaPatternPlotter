@@ -4,17 +4,21 @@
         y: number;
     }
     interface Props {
+        compass: number;
         marker: number;
         marker_size: number;
         measurements;
         ref: number;
+        show_compass: boolean;
         show_marker: boolean;
     }
     let {
-        marker = 0,
+        compass = 0.0,
+        marker = 0.0,
         marker_size = 15,
         measurements = [],
         ref = -100.0,
+        show_compass = false,
         show_marker = true,
     }: Props = $props();
 
@@ -28,6 +32,16 @@
 
         return { x, y };
     }
+
+    let compassPath = $derived.by(() => {
+        const start = polar(3, compass - 90);
+        const end = polar(37, compass - 90);
+
+        return (
+            `M ${start.x.toFixed(2)} ${start.y.toFixed(2)} ` +
+            `L ${end.x.toFixed(2)} ${end.y.toFixed(2)}`
+        );
+    });
 
     let markerPath = $derived.by(() => {
         const start = polar(40, marker - marker_size / 2 - 90);
@@ -103,11 +117,19 @@
             d={markerPath}
             filter="url(#blurred)"
             stroke-linecap="round"
-            stroke-width="1.5"
+            stroke-width="2.5"
         />
         <path
             class="marker"
             d={markerPath}
+            stroke-linecap="round"
+            stroke-width="1"
+        />
+    {/if}
+    {#if show_compass}
+        <path
+            class="compass"
+            d={compassPath}
             stroke-linecap="round"
             stroke-width="1"
         />
@@ -156,6 +178,10 @@
 </svg>
 
 <style>
+    .compass {
+        stroke: var(--color-violet-500);
+    }
+
     .marker {
         stroke: var(--color-amber-500);
     }
