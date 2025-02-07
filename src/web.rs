@@ -22,6 +22,7 @@ use axum::response::sse::{Event, Sse};
 use axum::response::IntoResponse;
 use axum::routing::{get, post};
 use axum::Router;
+use axum_server::tls_rustls::RustlsConfig;
 use clap_port_flag::Port;
 use futures::stream::{self, Stream};
 use std::convert::Infallible;
@@ -30,15 +31,41 @@ use tokio::runtime::Runtime;
 use tokio_stream::StreamExt as _;
 use tower_http::trace::TraceLayer;
 
-pub fn run_web_app(data: RxDataHolder, port: Port) {
+pub fn run_web_app(data: RxDataHolder, port: Port, with_tls: bool) {
     let runtime = Runtime::new().unwrap();
 
     runtime.block_on(async {
         let listener = port.bind_or(8000).unwrap();
-        let listener = tokio::net::TcpListener::from_std(listener).unwrap();
-        tracing::info!("Listening on http://{}", listener.local_addr().unwrap());
-        axum::serve(listener, router(data)).await.unwrap();
+        if with_tls {
+            let certificate = gen_cert();
+            let config = RustlsConfig::from_der(
+                vec![certificate.cert.der().to_vec()],
+                certificate.key_pair.serialize_der(),
+            )
+            .await
+            .unwrap();
+            tracing::info!("Listening on https://{}", listener.local_addr().unwrap());
+            axum_server::from_tcp_rustls(listener, config)
+                .serve(router(data).into_make_service())
+                .await
+                .unwrap();
+        } else {
+            let listener = tokio::net::TcpListener::from_std(listener).unwrap();
+            tracing::info!("Listening on http://{}", listener.local_addr().unwrap());
+            axum::serve(listener, router(data)).await.unwrap();
+        }
     });
+}
+
+fn gen_cert() -> rcgen::CertifiedKey {
+    let key_pair = rcgen::KeyPair::generate().unwrap();
+    let mut cert_params = rcgen::CertificateParams::new([]).unwrap();
+    cert_params
+        .distinguished_name
+        .push(rcgen::DnType::CommonName, env!("CARGO_PKG_NAME"));
+    let cert = cert_params.self_signed(&key_pair).unwrap();
+
+    rcgen::CertifiedKey { cert, key_pair }
 }
 
 async fn change_frequency(

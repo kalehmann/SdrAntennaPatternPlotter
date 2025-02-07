@@ -24,6 +24,9 @@ pub struct Args {
     pub gain: i16,
     #[clap(flatten)]
     pub port: clap_port_flag::Port,
+    /// Enables TLS with self signed certificate. Only for testing!!!
+    #[arg(short, long)]
+    pub tls: bool,
     #[command(flatten)]
     pub verbose: clap_verbosity_flag::Verbosity,
 }
