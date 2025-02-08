@@ -1,10 +1,10 @@
 <script lang="ts">
-    interface Point {
-        x: number;
-        y: number;
-    }
+    import { polarToCartesian, Vec2d } from "$lib/common.ts";
+    import { CubicInterpolation } from "$lib/cubic_interpolation.ts";
+
     interface Props {
         compass?: number;
+        interpolate?: boolean;
         marker?: number;
         marker_size?: number;
         measurements: Array<[number, number]>;
@@ -14,6 +14,7 @@
     }
     let {
         compass = 0.0,
+        interpolate = false,
         marker = 0.0,
         marker_size = 15,
         measurements = [],
@@ -25,33 +26,19 @@
     function dbfs2db(dbfs: number, ref: number): number {
         return (dbfs - ref) / 2;
     }
-    function polar(r: number, angle: number): Point {
-        const rad: number = (angle * Math.PI) / 180.0;
-        const x: number = r * Math.cos(rad);
-        const y: number = r * Math.sin(rad);
-
-        return { x, y };
-    }
 
     let compassPath = $derived.by(() => {
-        const start = polar(3, compass - 90);
-        const end = polar(37, compass - 90);
+        const start = polarToCartesian(3, compass - 90);
+        const end = polarToCartesian(37, compass - 90);
 
-        return (
-            `M ${start.x.toFixed(2)} ${start.y.toFixed(2)} ` +
-            `L ${end.x.toFixed(2)} ${end.y.toFixed(2)}`
-        );
+        return `M ${start.svgPath()} L ${end.svgPath()}`;
     });
 
     let markerPath = $derived.by(() => {
-        const start = polar(40, marker - marker_size / 2 - 90);
-        const end = polar(40, marker + marker_size / 2 - 90);
+        const start = polarToCartesian(40, marker - marker_size / 2 - 90);
+        const end = polarToCartesian(40, marker + marker_size / 2 - 90);
 
-        return (
-            `M ${start.x.toFixed(2)} ${start.y.toFixed(2)} ` +
-            "A 40 40 0 0 1 " +
-            `${end.x.toFixed(2)} ${end.y.toFixed(2)}`
-        );
+        return `M ${start.svgPath()} A 40 40 0 0 1 ${end.svgPath()}`;
     });
     let maxDbfs = $derived.by(() => {
         return Math.max(...measurements.map(([, dbfs]) => dbfs), ref);
@@ -59,15 +46,25 @@
     let minDbfs = $derived.by(() => {
         return Math.min(...measurements.map(([, dbfs]) => dbfs), ref);
     });
-    let points: Array<[number, number]> = $derived.by(() => {
+    let points: Array<Vec2d> = $derived.by(() => {
         return measurements.map(([angle, dbfs]) => {
-            return [angle, dbfs2db(dbfs, ref) - dbfs2db(maxDbfs, ref)];
+            const a = angle - 90;
+            const db = dbfs2db(dbfs, ref) - dbfs2db(maxDbfs, ref);
+            const r = ((scale + db) / scale) * 40;
+
+            return Vec2d.fromPolar(r, a);
         });
     });
     let scale = $derived.by(() => {
         // Gets the smallest multiple of 4, that is still larger than the
         // difference between minimal and maximal value in db.
         return Math.max(Math.ceil(dbfs2db(maxDbfs, minDbfs) / 4) * 4, 1);
+    });
+
+    let interpolationPath = $derived.by(() => {
+        const interpolation = new CubicInterpolation(points, 0.2);
+
+        return interpolation.svgPath();
     });
 </script>
 
@@ -95,10 +92,10 @@
         <line
             stroke="#222"
             stroke-width={i % 3 === 0 ? 0.2 : 0.1}
-            x1={polar(40, i * 30).x}
-            y1={polar(40, i * 30).y}
-            x2={polar(40, i * 30 - 180).x}
-            y2={polar(40, i * 30 - 180).y}
+            x1={polarToCartesian(40, i * 30).x}
+            y1={polarToCartesian(40, i * 30).y}
+            x2={polarToCartesian(40, i * 30 - 180).x}
+            y2={polarToCartesian(40, i * 30 - 180).y}
         />
     {/each}
     {#each { length: 3 }, i}
@@ -115,6 +112,7 @@
         <path
             class="animate-pulse marker"
             d={markerPath}
+            fill="none"
             filter="url(#blurred)"
             stroke-linecap="round"
             stroke-width="2.5"
@@ -122,6 +120,7 @@
         <path
             class="marker"
             d={markerPath}
+            fill="none"
             stroke-linecap="round"
             stroke-width="1"
         />
@@ -139,8 +138,8 @@
             alignment-baseline="middle"
             font-size="3pt"
             text-anchor="middle"
-            x={polar(45, i * 30 - 90).x}
-            y={polar(45, i * 30 - 90).y}
+            x={polarToCartesian(45, i * 30 - 90).x}
+            y={polarToCartesian(45, i * 30 - 90).y}
         >
             {i * 30 > 180 ? i * 30 - 360 : i * 30}&deg
         </text>
@@ -157,14 +156,18 @@
             {0 - (i * scale) / 4}db
         </text>
     {/each}
-    {#each points as [angle, db] (angle)}
-        <circle
-            cx={polar(((scale + db) / scale) * 40, angle - 90).x}
-            cy={polar(((scale + db) / scale) * 40, angle - 90).y}
-            fill="#000"
-            r="1"
-        />
+    {#each points as point (point.angle())}
+        <circle cx={point.x} cy={point.y} fill="#000" r="1" />
     {/each}
+    {#if interpolate}
+        <path
+            id="interpolation"
+            d={interpolationPath}
+            fill="none"
+            stroke="#000"
+            stroke-width="0.2"
+        />
+    {/if}
     <text
         alignment-baseline="middle"
         font-size="3pt"

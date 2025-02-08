@@ -72,6 +72,7 @@
 
 <div id="pattern-wrapper">
     <GainPattern
+        interpolate={true}
         measurements={appState.measurements}
         ref={appState.reference_dbfs}
         show_marker={false}
