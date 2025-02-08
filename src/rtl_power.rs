@@ -22,6 +22,7 @@ use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 use std::sync::Arc;
 use std::thread;
 use std::time;
+use tokio::sync::watch;
 
 fn end_process(proc: &mut Child) {
     // First try it the graceful way
@@ -93,9 +94,9 @@ fn start_stderr_thread(
 
 fn start_stdout_thread(
     should_stop: Arc<AtomicBool>,
-    data: RxDataHolder,
     mut command: Child,
     stdout: ChildStdout,
+    tx: watch::Sender<f64>,
 ) -> thread::JoinHandle<()> {
     thread::spawn(move || {
         tracing::info!("Stdout thread started");
@@ -115,7 +116,7 @@ fn start_stdout_thread(
                 // Integer cast is need here as floats are not ordered.
                 .map(|v| (v * 100.0) as i32);
             if let Some(val) = values.max() {
-                data.set_dbfs((val as f64) / 100.0);
+                tx.send((val as f64) / 100.0).unwrap();
                 started = true;
             }
         }
@@ -137,10 +138,13 @@ pub struct RtlPower {
     frequency_khz: Arc<AtomicU32>,
     gain: i16,
     should_stop: Arc<AtomicBool>,
+    tx: watch::Sender<f64>,
 }
 
 impl RtlPower {
-    pub fn new(data: RxDataHolder, gain: i16) -> RtlPower {
+    pub fn new(gain: i16) -> RtlPower {
+        let (tx, rx) = watch::channel(0.0);
+        let data = RxDataHolder::new(rx);
         let frequency = data.get_frequency_khz();
 
         RtlPower {
@@ -149,11 +153,15 @@ impl RtlPower {
             frequency_khz: Arc::new(AtomicU32::new(frequency)),
             gain: gain,
             should_stop: Arc::new(AtomicBool::new(false)),
+            tx: tx,
         }
     }
 
+    pub fn data(&self) -> RxDataHolder {
+        self.data.clone()
+    }
+
     pub fn start(&mut self) {
-        self.data.set_dbfs(0.0);
         self.should_stop.store(false, Ordering::Relaxed);
         self.start_control_thread();
     }
@@ -172,6 +180,7 @@ impl RtlPower {
         let frequency_khz = self.frequency_khz.clone();
         let should_io_stop = Arc::new(AtomicBool::new(false));
         let should_stop = self.should_stop.clone();
+        let tx = self.tx.clone();
 
         self.control_thread = Some(thread::spawn(move || {
             tracing::info!("Control thread started");
@@ -180,7 +189,7 @@ impl RtlPower {
                 start_stderr_thread(should_io_stop.clone(), command.stderr.take().unwrap());
             let mut stdout = command.stdout.take().unwrap();
             let mut stdout_thread =
-                start_stdout_thread(should_io_stop.clone(), data.clone(), command, stdout);
+                start_stdout_thread(should_io_stop.clone(), command, stdout, tx.clone());
 
             while !should_stop.load(Ordering::Relaxed) {
                 let current_freq = frequency_khz.load(Ordering::Relaxed);
@@ -202,7 +211,7 @@ impl RtlPower {
                         start_stderr_thread(should_io_stop.clone(), command.stderr.take().unwrap());
                     stdout = command.stdout.take().unwrap();
                     stdout_thread =
-                        start_stdout_thread(should_io_stop.clone(), data.clone(), command, stdout);
+                        start_stdout_thread(should_io_stop.clone(), command, stdout, tx.clone());
                 }
             }
             should_io_stop.store(true, Ordering::Relaxed);

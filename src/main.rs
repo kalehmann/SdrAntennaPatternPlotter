@@ -25,8 +25,8 @@ mod web;
 
 fn main() {
     let args = cli::Args::parse();
-    let data = data::RxDataHolder::new();
-    let mut rtlpwr = rtl_power::RtlPower::new(data.clone(), args.gain);
+    let mut rtlpwr = rtl_power::RtlPower::new(args.gain);
+    let data = rtlpwr.data();
 
     tracing_subscriber::registry()
         .with(

@@ -15,7 +15,7 @@ clap-verbosity-flag = "3.0.2"
 futures = "0.3.31"
 rcgen = "0.13.2"
 tokio = { version = "1.43.0", features = ["rt-multi-thread"] }
-tokio-stream = "0.1.17"
+tokio-stream = { version = "0.1.17", features = ["sync"] }
 tower-http = { version = "0.6.1", features = ["trace"] }
 tracing = "0.1.41"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }

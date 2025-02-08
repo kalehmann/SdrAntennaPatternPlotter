@@ -24,7 +24,7 @@ use axum::routing::{get, post};
 use axum::Router;
 use axum_server::tls_rustls::RustlsConfig;
 use clap_port_flag::Port;
-use futures::stream::{self, Stream};
+use futures::stream::Stream;
 use std::convert::Infallible;
 use std::time::Duration;
 use tokio::runtime::Runtime;
@@ -93,10 +93,10 @@ async fn index() -> impl IntoResponse {
 async fn sse_handler(
     State(data): State<RxDataHolder>,
 ) -> Sse<impl Stream<Item = Result<Event, Infallible>>> {
-    let stream =
-        stream::repeat_with(move || Event::default().data(format!("{:.2}", data.get_dbfs())))
-            .map(Ok)
-            .throttle(Duration::from_secs(1));
+    let stream = data
+        .dbfs_as_stream()
+        .map(|val: f64| Event::default().data(format!("{:.2}", val)))
+        .map(Ok);
 
     Sse::new(stream).keep_alive(
         axum::response::sse::KeepAlive::new()

@@ -15,37 +15,31 @@
  *   You should have received a copy of the GNU Affero General Public License
  *   along with sdr_gain_tool. If not, see <https://www.gnu.org/licenses/>. */
 
-use std::sync::atomic::{AtomicU16, AtomicU32, Ordering};
+use std::sync::atomic::{AtomicU32, Ordering};
 use std::sync::Arc;
+use tokio::sync::watch::Receiver;
+use tokio_stream::wrappers::WatchStream;
 
 #[derive(Clone)]
 pub struct RxDataHolder {
     frequency_khz: Arc<AtomicU32>,
-    latest_dbfs: Arc<AtomicU16>,
+    rx: Receiver<f64>,
 }
 
 impl RxDataHolder {
-    pub fn new() -> RxDataHolder {
+    pub fn new(rx: Receiver<f64>) -> RxDataHolder {
         RxDataHolder {
             frequency_khz: Arc::new(AtomicU32::new(145_000)),
-            latest_dbfs: Arc::new(AtomicU16::new(0)),
+            rx: rx,
         }
     }
 
-    pub fn get_dbfs(&self) -> f64 {
-        let compressed_val = self.latest_dbfs.load(Ordering::Relaxed);
-
-        (compressed_val as f64) * -0.01
+    pub fn dbfs_as_stream(&self) -> WatchStream<f64> {
+        WatchStream::<f64>::from_changes(self.rx.clone())
     }
 
     pub fn get_frequency_khz(&self) -> u32 {
         self.frequency_khz.load(Ordering::Relaxed)
-    }
-
-    pub fn set_dbfs(&self, val: f64) {
-        let compressed_val = (val * -100.0) as u16;
-
-        self.latest_dbfs.store(compressed_val, Ordering::Relaxed);
     }
 
     pub fn set_frequency_khz(&self, val: u32) {
