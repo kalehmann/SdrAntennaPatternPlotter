@@ -13,12 +13,21 @@
     let { next = () => {} }: Props = $props();
 
     const compass: Compass = new Compass();
+    const stepSize = 360 / appState.steps;
+    const markerSize = limit(stepSize / 2, 5, 20);
+
     let currentStep: number = $state(0.0);
     let currentValue: number = -100.0;
     let measuring: boolean = false;
+    let nextAngle: number = $derived.by(() => {
+        const angle = currentStep * stepSize;
+        if (angle <= 180) {
+            return angle;
+        }
+
+        return angle - 360;
+    });
     let showModal: boolean = $state(true);
-    const stepSize = 360 / appState.steps;
-    const markerSize = limit(stepSize / 2, 5, 20);
 
     function onMeasureDone() {
         const angle = currentStep * stepSize;
@@ -57,8 +66,8 @@
 <div class="flex flex-col">
     <p class="m-3 text-xl">
         Turn your device and antenna so that
-        {(currentStep * stepSize).toFixed(0)}&deg points torwards the receiver,
-        press the measure button and hold your antenna steady.
+        {nextAngle.toFixed(0)}&deg points torwards the receiver, press the
+        measure button and hold your antenna steady.
     </p>
     <div class="flex m-5 flex-row justify-center text-xl">
         Current value: &nbsp <Dbfs value={onValue} />
