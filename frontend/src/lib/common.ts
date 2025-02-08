@@ -24,6 +24,10 @@ export class Vec2d {
     };
 }
 
+export const limit = (value: number, min: number, max: number): number => {
+    return Math.max(Math.min(value, max), min);
+};
+
 export const polarToCartesian = (r: number, angle: number): Vec2d => {
     const rad: number = (angle * Math.PI) / 180.0;
     const x: number = r * Math.cos(rad);

@@ -1,6 +1,7 @@
 <script lang="ts">
     import { appState } from "$lib/state.svelte.ts";
     import { Compass } from "$lib/compass.svelte.ts";
+    import { limit } from "$lib/common.ts";
     import Dbfs from "$lib/Dbfs.svelte";
     import GainPattern from "$lib/GainPattern.svelte";
     import MeasureButton from "$lib/MeasureButton.svelte";
@@ -17,6 +18,7 @@
     let measuring: boolean = false;
     let showModal: boolean = $state(true);
     const stepSize = 360 / appState.steps;
+    const markerSize = limit(stepSize / 2, 5, 20);
 
     function onMeasureDone() {
         const angle = currentStep * stepSize;
@@ -64,7 +66,7 @@
     <GainPattern
         compass={compass.direction}
         marker={currentStep * stepSize}
-        marker_size={stepSize / 2}
+        marker_size={markerSize}
         measurements={appState.measurements}
         ref={appState.reference_dbfs}
         show_compass={compass.available && currentStep > 0}
