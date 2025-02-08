@@ -1,1 +1,3 @@
 @import "tailwindcss";
+/* Tailwind needs this to also scan the main html file for used classes. */
+@source "app.html";
