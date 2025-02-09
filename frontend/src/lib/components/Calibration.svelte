@@ -1,8 +1,8 @@
 <script lang="ts">
     import { appState } from "$lib/state.svelte.ts";
-    import Dbfs from "$lib/Dbfs.svelte";
-    import MeasureButton from "$lib/MeasureButton.svelte";
-    import Modal from "$lib/Modal.svelte";
+    import Dbfs from "$lib/components/Dbfs.svelte";
+    import MeasureButton from "$lib/components/MeasureButton.svelte";
+    import Modal from "$lib/components/Modal.svelte";
 
     interface Props {
         next: () => void;

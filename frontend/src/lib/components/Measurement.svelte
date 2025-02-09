@@ -2,10 +2,10 @@
     import { appState } from "$lib/state.svelte.ts";
     import { Compass } from "$lib/compass.svelte.ts";
     import { limit } from "$lib/common.ts";
-    import Dbfs from "$lib/Dbfs.svelte";
-    import GainPattern from "$lib/GainPattern.svelte";
-    import MeasureButton from "$lib/MeasureButton.svelte";
-    import Modal from "$lib/Modal.svelte";
+    import Dbfs from "$lib/components/Dbfs.svelte";
+    import GainPattern from "$lib/components/GainPattern.svelte";
+    import MeasureButton from "$lib/components/MeasureButton.svelte";
+    import Modal from "$lib/components/Modal.svelte";
 
     interface Props {
         next: () => void;

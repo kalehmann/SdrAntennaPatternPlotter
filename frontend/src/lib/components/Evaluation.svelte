@@ -1,6 +1,6 @@
 <script lang="ts">
     import { appState } from "$lib/state.svelte.ts";
-    import GainPattern from "$lib/GainPattern.svelte";
+    import GainPattern from "$lib/components/GainPattern.svelte";
 
     function downloadCsv(
         filename: string,

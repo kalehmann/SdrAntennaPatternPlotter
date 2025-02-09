@@ -1,9 +1,9 @@
 <script lang="ts">
-    import BasicSettings from "$lib/BasicSettings.svelte";
-    import Calibration from "$lib/Calibration.svelte";
-    import Evaluation from "$lib/Evaluation.svelte";
-    import Measurement from "$lib/Measurement.svelte";
-    import Progress from "$lib/Progress.svelte";
+    import BasicSettings from "$lib/components/BasicSettings.svelte";
+    import Calibration from "$lib/components/Calibration.svelte";
+    import Evaluation from "$lib/components/Evaluation.svelte";
+    import Measurement from "$lib/components/Measurement.svelte";
+    import Progress from "$lib/components/Progress.svelte";
 
     let step: number = $state(1);
 
