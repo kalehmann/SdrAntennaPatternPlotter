@@ -24,6 +24,10 @@ export class Vec2d {
     };
 }
 
+export const dbfs2db = (dbfs: number, ref: number): number => {
+    return (dbfs - ref) / 2;
+};
+
 export const limit = (value: number, min: number, max: number): number => {
     return Math.max(Math.min(value, max), min);
 };

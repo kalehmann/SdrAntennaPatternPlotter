@@ -22,7 +22,7 @@
     }
 
     function onDownloadCsv() {
-        const data = [["Angle", "Gain (dbFS)"], ...appState.measurements];
+        const data = appState.values.csvValues();
         const date = new Date();
         const filename = `antenna-${date.toISOString().split("T")[0]}.csv`;
 
@@ -71,12 +71,7 @@
 </script>
 
 <div id="pattern-wrapper">
-    <GainPattern
-        interpolate={true}
-        measurements={appState.measurements}
-        ref={appState.reference_dbfs}
-        show_marker={false}
-    />
+    <GainPattern interpolate={true} values={appState.values} />
 </div>
 
 <div class="flex flex-row justify-center">

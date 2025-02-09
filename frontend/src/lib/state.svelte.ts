@@ -1,13 +1,13 @@
+import { MeasuredValues } from "$lib/measured_values.svelte.ts";
+
 interface AppState {
     frequency: number;
-    measurements: Array<[number, number]>;
-    reference_dbfs: number;
     steps: number;
+    values: MeasuredValues;
 }
 
 export const appState: AppState = $state({
     frequency: 145_000,
-    measurements: [],
-    reference_dbfs: -100.0,
     steps: 12,
+    values: new MeasuredValues(-100.0),
 });

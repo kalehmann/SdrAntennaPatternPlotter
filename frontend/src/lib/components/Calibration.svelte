@@ -28,7 +28,7 @@
 <div class="flex flex-row justify-center">
     <MeasureButton
         done={() => {
-            appState.reference_dbfs = result;
+            appState.values.setReference(result);
             next();
         }}
         start={() => {

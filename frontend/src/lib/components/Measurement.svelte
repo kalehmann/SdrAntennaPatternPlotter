@@ -16,6 +16,13 @@
     const stepSize = 360 / appState.steps;
     const markerSize = limit(stepSize / 2, 5, 20);
 
+    let compassDirection = $derived.by(() => {
+        if (!compass.available || currentStep === 0) {
+            return null;
+        }
+
+        return compass.direction;
+    });
     let currentStep: number = $state(0.0);
     let currentValue: number = -100.0;
     let measuring: boolean = false;
@@ -31,7 +38,7 @@
 
     function onMeasureDone() {
         const angle = currentStep * stepSize;
-        appState.measurements.push([angle, currentValue]);
+        appState.values.addValue(angle, currentValue);
         if (currentStep === 0) {
             compass.finishCalibration();
         }
@@ -73,12 +80,10 @@
         Current value: &nbsp <Dbfs value={onValue} />
     </div>
     <GainPattern
-        compass={compass.direction}
+        compass={compassDirection}
         marker={currentStep * stepSize}
         marker_size={markerSize}
-        measurements={appState.measurements}
-        ref={appState.reference_dbfs}
-        show_compass={compass.available && currentStep > 0}
+        values={appState.values}
     />
     <div class="flex flex-row justify-center">
         <MeasureButton
