@@ -1,17 +1,50 @@
 ---
-x-python-service: &node-service
+x-node-service: &node-service
         build:
                 context: "."
                 dockerfile: ".docker/dev.Dockerfile"
                 target: "node_dev"
         volumes:
-                - ".:/sdr_gain_tool:rw"
+                - ".:/sdr_gain_tool"
         working_dir: "/sdr_gain_tool/frontend"
+x-rust-service: &rust-service
+        build:
+                context: "."
+                dockerfile: ".docker/dev.Dockerfile"
+                target: "rust_dev"
+        environment:
+                - "CARGO_HOME=/cargo_home"
+        volumes:
+                - "cargo_home:/cargo_home"
+                - ".:/sdr_gain_tool"
+        working_dir: "/sdr_gain_tool/"
 
 services:
+        cargo:
+                <<: *rust-service
+                entrypoint: "/usr/local/cargo/bin/cargo"
+        sdr_gain_tool:
+                extends: "cargo"
+                device_cgroup_rules:
+                        - "c 189:* rwm"
+                entrypoint:
+                        - "/usr/local/cargo/bin/cargo"
+                        - "run"
+                        - "--"
+                        - "-vvv"
+                        - "--address=0.0.0.0"
+                        - "--tls"
+                        - "--gain=30"
+                ports:
+                        - "8000:8000"
+                privileged: true
+                volumes:
+                        - "/dev/bus/usb:/dev/bus/usb:ro"
         yarn:
                 <<: *node-service
                 entrypoint: "/usr/local/bin/yarn"
                 ports:
                         - "5173:5173"
+volumes:
+        cargo_home: ~
 ...
