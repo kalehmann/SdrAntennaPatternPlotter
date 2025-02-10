@@ -13,6 +13,7 @@ clap = { version = "4.5.27", features = ["derive"] }
 clap-port-flag = "0.4.0"
 clap-verbosity-flag = "3.0.2"
 futures = "0.3.31"
+libc = "0.2.169"
 rcgen = "0.13.2"
 tokio = { version = "1.43.0", features = ["rt-multi-thread"] }
 tokio-stream = { version = "0.1.17", features = ["sync"] }

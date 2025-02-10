@@ -16,6 +16,7 @@
  *   along with sdr_gain_tool. If not, see <https://www.gnu.org/licenses/>. */
 
 use crate::data::RxDataHolder;
+use libc;
 use std::io::{BufRead, BufReader};
 use std::process::{Child, ChildStderr, ChildStdout, Command, Stdio};
 use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
@@ -26,12 +27,9 @@ use tokio::sync::watch;
 
 fn end_process(proc: &mut Child) {
     // First try it the graceful way
-    let mut kill = Command::new("kill")
-        .args(["-s", "TERM", &proc.id().to_string()])
-        .spawn()
-        .expect("Could not launch 'kill' to send signal to process.");
-    kill.wait().expect("Could not await process 'kill'.");
-
+    unsafe {
+        libc::kill(proc.id() as i32, libc::SIGTERM);
+    }
     for _ in 0..5 {
         if !process_running(proc) {
             return;
