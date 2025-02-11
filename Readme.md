@@ -11,7 +11,7 @@ The project is split into two parts:
 When using docker for development, there is no need to install Rust or Node.js
 locally.
 Several convenience services are defined inside the
-[`docker-compose.yaml`] to wrap commonly used tools.
+[`docker-compose.yaml`](./docker-compose.yaml) to wrap commonly used tools.
 
 For frontend development use
 
