@@ -44,4 +44,5 @@ fn main() {
 
     rtlpwr.start();
     web::run_web_app(data, args.port, args.tls);
+    rtlpwr.stop();
 }

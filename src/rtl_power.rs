@@ -164,7 +164,6 @@ impl RtlPower {
         self.start_control_thread();
     }
 
-    #[allow(dead_code)]
     pub fn stop(&mut self) {
         self.should_stop.store(true, Ordering::Relaxed);
         if let Some(thread) = self.control_thread.take() {

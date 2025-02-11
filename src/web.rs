@@ -28,6 +28,7 @@ use futures::stream::Stream;
 use std::convert::Infallible;
 use std::time::Duration;
 use tokio::runtime::Runtime;
+use tokio::signal;
 use tokio_stream::StreamExt as _;
 use tower_http::trace::TraceLayer;
 
@@ -35,7 +36,10 @@ pub fn run_web_app(data: RxDataHolder, port: Port, with_tls: bool) {
     let runtime = Runtime::new().unwrap();
 
     runtime.block_on(async {
+        let handle = axum_server::Handle::new();
         let listener = port.bind_or(8000).unwrap();
+        tokio::spawn(shutdown_handler(handle.clone()));
+
         if with_tls {
             let certificate = gen_cert();
             let config = RustlsConfig::from_der(
@@ -46,13 +50,17 @@ pub fn run_web_app(data: RxDataHolder, port: Port, with_tls: bool) {
             .unwrap();
             tracing::info!("Listening on https://{}", listener.local_addr().unwrap());
             axum_server::from_tcp_rustls(listener, config)
+                .handle(handle)
                 .serve(router(data).into_make_service())
                 .await
                 .unwrap();
         } else {
-            let listener = tokio::net::TcpListener::from_std(listener).unwrap();
             tracing::info!("Listening on http://{}", listener.local_addr().unwrap());
-            axum::serve(listener, router(data)).await.unwrap();
+            axum_server::from_tcp(listener)
+                .handle(handle)
+                .serve(router(data).into_make_service())
+                .await
+                .unwrap();
         }
     });
 }
@@ -112,4 +120,34 @@ fn router(data: RxDataHolder) -> Router {
         .route("/sse", get(sse_handler))
         .with_state(data)
         .layer(TraceLayer::new_for_http())
+}
+
+async fn shutdown_handler(handle: axum_server::Handle) {
+    let ctrl_c = async {
+        signal::ctrl_c()
+            .await
+            .expect("failed to install Ctrl+C handler");
+    };
+
+    #[cfg(unix)]
+    let terminate = async {
+        signal::unix::signal(signal::unix::SignalKind::terminate())
+            .expect("failed to install signal handler")
+            .recv()
+            .await;
+    };
+
+    #[cfg(not(unix))]
+    let terminate = std::future::pending::<()>();
+
+    tokio::select! {
+        _ = ctrl_c => {
+        tracing::info!("Received SIGINT, shutting down");
+    },
+        _ = terminate => {
+        tracing::info!("Received SIGTERM, shutting down");
+    },
+    }
+
+    handle.graceful_shutdown(Some(Duration::from_secs(3)));
 }
