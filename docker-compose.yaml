@@ -12,11 +12,16 @@ x-rust-service: &rust-service
                 context: "."
                 dockerfile: ".docker/dev.Dockerfile"
                 target: "rust_dev"
+        device_cgroup_rules:
+                - "c 189:* rwm"
         environment:
                 - "CARGO_HOME=/cargo_home"
+        ports:
+                - "8000:8000"
         volumes:
                 - "cargo_home:/cargo_home"
                 - ".:/sdr_gain_tool"
+                - "/dev/bus/usb:/dev/bus/usb:ro"
         working_dir: "/sdr_gain_tool/"
 
 services:
@@ -24,9 +29,7 @@ services:
                 <<: *rust-service
                 entrypoint: "/usr/local/cargo/bin/cargo"
         sdr_gain_tool:
-                extends: "cargo"
-                device_cgroup_rules:
-                        - "c 189:* rwm"
+                <<: *rust-service
                 entrypoint:
                         - "/usr/local/cargo/bin/cargo"
                         - "run"
@@ -35,11 +38,6 @@ services:
                         - "--address=0.0.0.0"
                         - "--tls"
                         - "--gain=30"
-                ports:
-                        - "8000:8000"
-                privileged: true
-                volumes:
-                        - "/dev/bus/usb:/dev/bus/usb:ro"
         yarn:
                 <<: *node-service
                 entrypoint: "/usr/local/bin/yarn"
