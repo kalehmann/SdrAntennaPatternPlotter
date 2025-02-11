@@ -25,7 +25,7 @@
 </script>
 
 <div class="h-full p-3">
-    <h1 class="font-bold mb-2 text-xl">Basic Settings</h1>
+    <h1 class="font-bold mb-2 text-2xl">Basic Settings</h1>
 
     <form onsubmit={onSubmit}>
         <label class="block">
@@ -62,6 +62,7 @@
                        focus-visible:outline-none
                        focus-visible:bg-white
                        mb-2"
+                min="1"
                 type="number"
                 bind:value={appState.steps}
             />

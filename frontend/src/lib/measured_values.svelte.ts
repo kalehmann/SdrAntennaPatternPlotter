@@ -2,8 +2,6 @@ import { dbfs2db, Vec2d } from "$lib/common.ts";
 import { SvelteMap } from "svelte/reactivity";
 
 export class MeasuredValues {
-    private referenceValue: number = $state(0.0);
-
     private scaleBase: number;
 
     private values: Map<number, number> = $state(new SvelteMap());
@@ -33,6 +31,8 @@ export class MeasuredValues {
         };
     });
 
+    public referenceValue: number = $state(0.0);
+
     public scale = $derived.by(() => {
         // Gets the smallest multiple of scaleBase, that is still larger than
         // the difference between minimal and maximal value in db.
@@ -54,8 +54,17 @@ export class MeasuredValues {
         this.values.set(angle, dbfs);
     };
 
-    public csvValues = (): Array<[number | string, number | string]> => {
-        return [["Angle", "Gain (dbFS)"], ...this.values.entries()];
+    public csvValues = (): Array<[string, string, string]> => {
+        return [
+            ["Angle", "Gain (dbFS)", "Gain (dbRef)"],
+            ...this.values
+                .entries()
+                .map(([angle, dbfs]): [string, string, string] => [
+                    angle.toFixed(0),
+                    dbfs.toFixed(2),
+                    dbfs2db(dbfs, this.referenceValue).toFixed(2),
+                ]),
+        ];
     };
 
     public setReference = (value: number): void => {

@@ -77,7 +77,8 @@
         measure button and hold your antenna steady.
     </p>
     <div class="flex m-5 flex-row justify-center text-xl">
-        Current value: &nbsp <Dbfs value={onValue} />
+        Current value: &nbsp
+        <Dbfs reference={appState.values.referenceValue} value={onValue} />
     </div>
     <GainPattern
         compass={compassDirection}

@@ -22,8 +22,14 @@
     }
 </script>
 
-<div class="flex m-5 flex-row justify-center">
-    Current value: <Dbfs value={onValue} />
+<div class="flex m-5 flex-col items-center">
+    <p class="mb-2">
+        Place the reference antenna in the same place the actual antenna is
+        going to be measured.
+    </p>
+    <p>
+        Current value: <Dbfs value={onValue} />
+    </p>
 </div>
 <div class="flex flex-row justify-center">
     <MeasureButton
