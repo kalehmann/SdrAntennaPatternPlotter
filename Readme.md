@@ -29,7 +29,7 @@ docker compose run --rm --service-ports yarn dev
 # Build the frontend for deployment
 docker compose run --rm yarn build
 # Add a package
-docker compose run --rm --service-ports yarn add <package>
+docker compose run --rm yarn add <package>
 ```
 
 For backend development use
