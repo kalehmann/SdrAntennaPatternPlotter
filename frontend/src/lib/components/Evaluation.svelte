@@ -1,5 +1,6 @@
 <script lang="ts">
     import { appState } from "$lib/state.svelte.ts";
+    import Button from "$lib/components/Button.svelte";
     import GainPattern from "$lib/components/GainPattern.svelte";
 
     function downloadCsv(
@@ -75,38 +76,8 @@
 </div>
 
 <div class="flex flex-row justify-center">
-    <button
-        class="mt-5
-               auto-cols-min
-               grid-flow-col
-               gap-2
-               text-neutral-100
-               bg-violet-500
-               p-3
-               px-5
-               rounded-md
-               focus:bg-violet-600
-               hover:bg-violet-600"
-        onclick={onDownloadCsv}
-    >
-        Download CSV
-    </button>
+    <Button onclick={onDownloadCsv}>Download CSV</Button>
 </div>
 <div class="flex flex-row justify-center">
-    <button
-        class="mt-5
-               auto-cols-min
-               grid-flow-col
-               gap-2
-               text-neutral-100
-               bg-violet-500
-               p-3
-               px-5
-               rounded-md
-               focus:bg-violet-600
-               hover:bg-violet-600"
-        onclick={onDownloadPng}
-    >
-        Download PNG
-    </button>
+    <Button onclick={onDownloadPng}>Download PNG</Button>
 </div>

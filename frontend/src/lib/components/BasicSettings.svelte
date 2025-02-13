@@ -1,5 +1,7 @@
 <script lang="ts">
     import { appState } from "$lib/state.svelte.ts";
+    import Button from "$lib/components/Button.svelte";
+
     interface Props {
         start: () => void;
     }
@@ -73,21 +75,7 @@
             ).toFixed(2)} &deg
         </p>
         <div class="flex flex-row justify-center">
-            <input
-                id="start"
-                name="start"
-                class="mt-5
-                       inline
-                       text-neutral-100
-                       bg-violet-500
-                       p-2
-                       px-5
-                       rounded-md
-                       focus:bg-violet-600
-                       hover:bg-violet-600"
-                type="submit"
-                value="Start"
-            />
+            <Button>Start</Button>
         </div>
     </form>
 </div>

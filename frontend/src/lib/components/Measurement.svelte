@@ -2,6 +2,7 @@
     import { appState } from "$lib/state.svelte.ts";
     import { Compass } from "$lib/compass.svelte.ts";
     import { limit } from "$lib/common.ts";
+    import Button from "$lib/components/Button.svelte";
     import Dbfs from "$lib/components/Dbfs.svelte";
     import GainPattern from "$lib/components/GainPattern.svelte";
     import MeasureButton from "$lib/components/MeasureButton.svelte";
@@ -108,21 +109,12 @@
             <p>The compass will be calibrated during the first measurement.</p>
         {/if}
 
-        <button
-            class="mt-5
-                   inline
-                   text-neutral-100
-                   bg-violet-500
-                   p-2
-                   px-5
-                   rounded-md
-                   focus:bg-violet-600
-                   hover:bg-violet-600"
+        <Button
             onclick={() => {
                 showModal = false;
             }}
         >
             Ok
-        </button>
+        </Button>
     </Modal>
 {/if}

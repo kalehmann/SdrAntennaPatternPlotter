@@ -1,5 +1,6 @@
 <script lang="ts">
     import { appState } from "$lib/state.svelte.ts";
+    import Button from "$lib/components/Button.svelte";
     import Dbfs from "$lib/components/Dbfs.svelte";
     import MeasureButton from "$lib/components/MeasureButton.svelte";
     import Modal from "$lib/components/Modal.svelte";
@@ -52,22 +53,13 @@
         <Modal>
             <p>Now connect the reference antenna to the signal source.</p>
 
-            <button
-                class="mt-5
-                   inline
-                   text-neutral-100
-                   bg-violet-500
-                   p-2
-                   px-5
-                   rounded-md
-                   focus:bg-violet-600
-                   hover:bg-violet-600"
+            <Button
                 onclick={() => {
                     showModal = false;
                 }}
             >
                 Ok
-            </button>
+            </Button>
         </Modal>
     {/if}
 </div>
