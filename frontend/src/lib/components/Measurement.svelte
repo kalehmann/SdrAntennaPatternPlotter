@@ -90,7 +90,6 @@
     <div class="flex flex-row justify-center">
         <MeasureButton
             done={onMeasureDone}
-            measuring_period={5.0}
             start={onMeasureStart}
             stop={onMeasureStop}
         >
