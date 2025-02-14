@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { Vec2d } from "$lib/common.ts";
+    import { colors, Vec2d } from "$lib/common.ts";
     import { CubicInterpolation } from "$lib/cubic_interpolation.ts";
     import { MeasuredValues } from "$lib/measured_values.svelte.ts";
 
@@ -15,11 +15,6 @@
         values,
         withRef = false,
     }: Props = $props();
-
-    // Need to load the color from the variable here, as styles are not loaded
-    // when the SVG is rendered as PNG or downloaded.
-    const styles = getComputedStyle(document.documentElement);
-    const refColor = styles.getPropertyValue("--color-emerald-700");
 
     let interpolationPath = $derived.by(() => {
         const interpolation = new CubicInterpolation(points, 0.2);
@@ -48,7 +43,7 @@
         class="reference"
         fill="none"
         r={values.referenceRadius(radius)}
-        stroke={refColor}
+        stroke={colors.reference}
         stroke-width="0.5"
     />
 {/if}

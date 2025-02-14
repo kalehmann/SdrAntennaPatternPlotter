@@ -64,7 +64,7 @@ export class MeasuredValues {
 
     public csvValues = (): Array<[string, string, string]> => {
         return [
-            ["Angle", "Gain (dbFS)", "Gain (dbRef)"],
+            ["Angle", "Gain (dbFS)", "dbFS - reference"],
             ...this.values
                 .entries()
                 .map(([angle, dbfs]): [string, string, string] => [

@@ -1,4 +1,6 @@
 <script lang="ts">
+    import { appState } from "$lib/state.svelte.ts";
+    import { colors } from "$lib/common.ts";
     import { MeasuredValues } from "$lib/measured_values.svelte.ts";
     import Compass from "$lib/components/gain_pattern/Compass.svelte";
     import Marker from "$lib/components/gain_pattern/Marker.svelte";
@@ -27,10 +29,19 @@
 
 <svg
     class="w-full"
-    viewBox="-50 -50 100 110"
+    viewBox="-50 -60 100 120"
     xmlns="http://www.w3.org/2000/svg"
     xmlns:xlink="http://www.w3.org/1999/xlink"
 >
+    <text
+        alignment-baseline="middle"
+        font-size="3pt"
+        text-anchor="start"
+        x="-45"
+        y="-53"
+    >
+        Frequency: {(appState.frequency / 1000.0).toFixed(3)} MHz
+    </text>
     <PolarGrid {radius}>
         {#if marker !== null}
             <Marker direction={marker} {radius} size={marker_size} />
@@ -43,10 +54,16 @@
     <text
         alignment-baseline="middle"
         font-size="3pt"
-        text-anchor="end"
-        x="47"
-        y="50"
+        text-anchor="start"
+        x="-45"
+        y="52"
     >
-        0 db = {values.maxDbRef.toFixed(1)} dbRef
+        <tspan>Reference antenna: </tspan>
+        <tspan fill={colors.reference}>
+            {appState.values.referenceValue.toFixed(1)} dbFS
+        </tspan>
+        <tspan x="47" text-anchor="end">
+            0 db = {values.maxDbfs.toFixed(1)} dbFS
+        </tspan>
     </text>
 </svg>

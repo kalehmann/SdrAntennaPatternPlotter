@@ -24,8 +24,16 @@ export class Vec2d {
     };
 }
 
+const styles = getComputedStyle(document.documentElement);
+
+export const colors = {
+    reference: styles.getPropertyValue("--color-emerald-700"),
+};
+
 export const dbfs2db = (dbfs: number, ref: number): number => {
-    return (dbfs - ref) / 2;
+    // dbFS is assumed to be linear to the received power.
+    // See https://groups.google.com/g/gqrx/c/hlUl0CEswvE/m/wvsXqNWABQAJ
+    return dbfs - ref;
 };
 
 export const limit = (value: number, min: number, max: number): number => {
