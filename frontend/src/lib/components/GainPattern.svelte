@@ -11,6 +11,7 @@
         marker?: number | null;
         marker_size?: number;
         values: MeasuredValues;
+        withRef?: boolean;
     }
     let {
         compass = null,
@@ -18,6 +19,7 @@
         marker = null,
         marker_size = 15,
         values,
+        withRef = false,
     }: Props = $props();
 
     const radius = 40;
@@ -36,7 +38,7 @@
         {#if compass !== null}
             <Compass direction={compass} {radius} />
         {/if}
-        <PolarPlot {interpolate} {radius} {values} />
+        <PolarPlot {interpolate} {radius} {values} {withRef} />
     </PolarGrid>
     <text
         alignment-baseline="middle"

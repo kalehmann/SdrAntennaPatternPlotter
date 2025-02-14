@@ -72,7 +72,7 @@
 </script>
 
 <div id="pattern-wrapper">
-    <GainPattern interpolate={true} values={appState.values} />
+    <GainPattern interpolate={true} values={appState.values} withRef={true} />
 </div>
 
 <div class="flex flex-row justify-center">

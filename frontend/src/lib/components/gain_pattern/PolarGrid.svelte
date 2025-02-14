@@ -18,8 +18,7 @@
         </feMerge>
     </filter>
 </defs>
-<circle cx="0" cy="0" fill="#fff" r={radius} />
-<circle cx="0" cy="0" r={radius} fill="none" stroke="#000" stroke-width="0.5" />
+<circle cx="0" cy="0" fill="#fff" r={radius} stroke="#000" stroke-width="0.5" />
 {#each { length: 6 }, i}
     <line
         stroke="#222"

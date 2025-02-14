@@ -31,6 +31,14 @@ export class MeasuredValues {
         };
     });
 
+    public referenceRadius = $derived.by(() => {
+        return (radius: number) => {
+            const maxDb = dbfs2db(this.maxDbfs, this.referenceValue);
+
+            return ((this.scale - maxDb) / this.scale) * radius;
+        };
+    });
+
     public referenceValue: number = $state(0.0);
 
     public scale = $derived.by(() => {
