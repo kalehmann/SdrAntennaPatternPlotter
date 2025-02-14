@@ -3,6 +3,34 @@
     import Button from "$lib/components/Button.svelte";
     import GainPattern from "$lib/components/GainPattern.svelte";
 
+    function download(filename: string, data: string): void {
+        const el = document.createElement("a");
+        el.setAttribute("download", filename);
+        el.setAttribute("href", data);
+        el.style.display = "none";
+
+        document.body.appendChild(el);
+        el.click();
+        document.body.removeChild(el);
+    }
+
+    function loadSvg(): SVGElement | null {
+        const svg = document
+            .getElementById("pattern-wrapper")
+            ?.querySelector("svg");
+        if (svg === null || svg === undefined) {
+            return null;
+        }
+
+        return svg;
+    }
+
+    function svgToDataUrl(svg: SVGElement): string {
+        const xml = new XMLSerializer().serializeToString(svg);
+
+        return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(xml)}`;
+    }
+
     function downloadCsv(
         filename: string,
         contents: Array<Array<number | string>>,
@@ -12,14 +40,7 @@
                 .map((line: Array<number | string>): string => line.join(","))
                 .join("\n"),
         );
-        const el = document.createElement("a");
-        el.setAttribute("download", filename);
-        el.setAttribute("href", `data:text/plain;charset=utf-8,${data}`);
-        el.style.display = "none";
-
-        document.body.appendChild(el);
-        el.click();
-        document.body.removeChild(el);
+        download(filename, `data:text/plain;charset=utf-8,${data}`);
     }
 
     function onDownloadCsv() {
@@ -31,20 +52,18 @@
     }
 
     async function onDownloadPng() {
-        const svg = document
-            .getElementById("pattern-wrapper")
-            ?.querySelector("svg");
-        if (svg === null || svg === undefined) {
-            return;
-        }
         const date = new Date();
         const filename = `antenna-${date.toISOString().split("T")[0]}.png`;
+        const svg = loadSvg();
+        if (svg === null) {
+            return;
+        }
         const height = svg.clientHeight;
         const width = svg.clientWidth;
-        const xml = new XMLSerializer().serializeToString(svg);
+        const svgData = svgToDataUrl(svg);
 
         const img = document.createElement("img");
-        img.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(xml)}`;
+        img.src = svgData;
         await new Promise((resolve, reject) => {
             img.onerror = reject;
             img.onload = resolve;
@@ -60,14 +79,19 @@
         context.drawImage(img, 0, 0, width * 2, height * 2);
         const dataUrl = await canvas.toDataURL("image/png", 1.0);
 
-        const el = document.createElement("a");
-        el.setAttribute("download", filename);
-        el.setAttribute("href", dataUrl);
-        el.style.display = "none";
+        download(filename, dataUrl);
+    }
 
-        document.body.appendChild(el);
-        el.click();
-        document.body.removeChild(el);
+    function onDownloadSvg() {
+        const date = new Date();
+        const filename = `antenna-${date.toISOString().split("T")[0]}.svg`;
+        const svg = loadSvg();
+        if (svg === null) {
+            return;
+        }
+        const svgData = svgToDataUrl(svg);
+
+        download(filename, svgData);
     }
 </script>
 
@@ -80,4 +104,7 @@
 </div>
 <div class="flex flex-row justify-center">
     <Button onclick={onDownloadPng}>Download PNG</Button>
+</div>
+<div class="flex flex-row justify-center">
+    <Button onclick={onDownloadSvg}>Download SVG</Button>
 </div>
