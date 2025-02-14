@@ -2,6 +2,7 @@
     import { appState } from "$lib/state.svelte.ts";
     import { Compass } from "$lib/compass.svelte.ts";
     import { limit } from "$lib/common.ts";
+    import { MeasuredValues } from "$lib/measured_values.svelte.ts";
     import Button from "$lib/components/Button.svelte";
     import Dbfs from "$lib/components/Dbfs.svelte";
     import GainPattern from "$lib/components/GainPattern.svelte";
@@ -37,6 +38,22 @@
     });
     let showModal: boolean = $state(true);
 
+    function loadDummyData() {
+        appState.values = new MeasuredValues(-17.54);
+        appState.values.addValue(0, -14.46);
+        appState.values.addValue(30, -19.96);
+        appState.values.addValue(60, -31.28);
+        appState.values.addValue(90, -31.34);
+        appState.values.addValue(120, -31.33);
+        appState.values.addValue(150, -27.51);
+        appState.values.addValue(180, -24.42);
+        appState.values.addValue(210, -26.7);
+        appState.values.addValue(240, -31.2);
+        appState.values.addValue(270, -31.24);
+        appState.values.addValue(300, -31.33);
+        appState.values.addValue(330, -19.64);
+        next();
+    }
     function onMeasureDone() {
         const angle = currentStep * stepSize;
         appState.values.addValue(angle, currentValue);
@@ -95,6 +112,9 @@
         >
             Measure
         </MeasureButton>
+        {#if import.meta.env.DEV}
+            <Button onclick={loadDummyData}>Load dummy values</Button>
+        {/if}
     </div>
 </div>
 

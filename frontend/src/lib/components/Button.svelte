@@ -10,6 +10,7 @@
 
 <button
     class="mt-5
+           m-1
            inline
            text-neutral-100
            bg-violet-500
