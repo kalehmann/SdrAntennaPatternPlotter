@@ -58,10 +58,12 @@
         x="-45"
         y="52"
     >
-        <tspan>Reference antenna: </tspan>
-        <tspan fill={colors.reference}>
-            {appState.values.referenceValue.toFixed(1)} dbFS
-        </tspan>
+        {#if appState.values.referenceValue !== null}
+            <tspan>Reference antenna: </tspan>
+            <tspan fill={colors.reference}>
+                {appState.values.referenceValue.toFixed(1)} dbFS
+            </tspan>
+        {/if}
         <tspan x="47" text-anchor="end">
             0 db = {values.maxDbfs.toFixed(1)} dbFS
         </tspan>

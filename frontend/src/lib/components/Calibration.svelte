@@ -48,6 +48,7 @@
     >
         Calibrate
     </MeasureButton>
+    <Button onclick={next}>Skip</Button>
 
     {#if showModal}
         <Modal>

@@ -39,7 +39,8 @@
     let showModal: boolean = $state(true);
 
     function loadDummyData() {
-        appState.values = new MeasuredValues(-17.54);
+        appState.values = new MeasuredValues();
+        appState.values.setReference(-17.54);
         appState.values.addValue(0, -14.46);
         appState.values.addValue(30, -19.96);
         appState.values.addValue(60, -31.28);

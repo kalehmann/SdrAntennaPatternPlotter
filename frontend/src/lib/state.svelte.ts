@@ -9,5 +9,5 @@ interface AppState {
 export const appState: AppState = $state({
     frequency: 145_000,
     steps: 12,
-    values: new MeasuredValues(-100.0),
+    values: new MeasuredValues(),
 });
