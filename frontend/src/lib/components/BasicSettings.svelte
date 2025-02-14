@@ -53,7 +53,7 @@
             Number of measurements:
             <input
                 id="measurement_count"
-                name="measurement_sound"
+                name="measurement_count"
                 class="block
                        w-full
                        border-1
