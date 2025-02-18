@@ -1,5 +1,7 @@
+import { Vec2d } from "$lib/common.ts";
+
 export class Compass {
-    private calibrationData: Array<number>;
+    private calibrationData: Array<Vec2d>;
 
     private offset: number = $state(0.0);
 
@@ -27,10 +29,11 @@ export class Compass {
         );
         if (this.calibrationData.length > 0) {
             const sum = this.calibrationData.reduce(
-                (a: number, b: number): number => a + b,
-                0,
+                (a: Vec2d, b: Vec2d): Vec2d => new Vec2d(a.x + b.x, a.y + b.y),
+                new Vec2d(0, 0),
             );
-            this.offset = sum / this.calibrationData.length;
+            this.value = this.calibrationData.pop()?.angle() ?? 0.0;
+            this.offset = sum.angle();
             this.calibrationData = [];
         }
         window.addEventListener("deviceorientation", this.compassHandler);
@@ -85,7 +88,10 @@ export class Compass {
         if (event.alpha === null) {
             return;
         }
-        this.calibrationData.push(event.alpha);
+        // Getting the average of a set of angles is difficult as the average
+        // of 1° and 359° is 0° and not 180°, so the values are converted to
+        // vectors first.
+        this.calibrationData.push(Vec2d.fromPolar(1, event.alpha));
     };
 
     private compassHandler = (event: DeviceOrientationEvent): void => {
