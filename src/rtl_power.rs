@@ -16,119 +16,18 @@
  *   along with sdr_gain_tool. If not, see <https://www.gnu.org/licenses/>. */
 
 use crate::data::RxDataHolder;
-use libc;
-use std::io::{BufRead, BufReader};
-use std::process::{Child, ChildStderr, ChildStdout, Command, Stdio};
+use rustfft::{num_complex::Complex, FftPlanner};
+use std::f64::consts::PI;
+use std::ops::DerefMut;
 use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 use std::sync::Arc;
 use std::thread;
 use std::time;
 use tokio::sync::watch;
 
-fn end_process(proc: &mut Child) {
-    // First try it the graceful way
-    unsafe {
-        libc::kill(proc.id() as i32, libc::SIGTERM);
-    }
-    for _ in 0..5 {
-        if !process_running(proc) {
-            return;
-        }
-        thread::sleep(time::Duration::from_secs(1));
-    }
-
-    // Omit the result here as the process may have ended in the mean time.
-    let _ = proc.kill();
-}
-
-fn process_running(proc: &mut Child) -> bool {
-    match proc.try_wait() {
-        Ok(Some(_)) => false,
-        Ok(None) => true,
-        Err(e) => panic!("Error checking child process status: {}", e),
-    }
-}
-
-fn start_rtl_power(freq_khz: u32, gain: i16) -> Child {
-    Command::new("rtl_power")
-        .arg("-f")
-        .arg(format!("{}K:{}K:1k", freq_khz - 100, freq_khz + 100))
-        .arg("-i")
-        .arg("1")
-        .arg("-g")
-        .arg(format!("{}", gain))
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .spawn()
-        .expect("Could not start 'rtl_power'. Is it in $PATH ?")
-}
-
-fn start_stderr_thread(
-    should_stop: Arc<AtomicBool>,
-    stderr: ChildStderr,
-) -> thread::JoinHandle<()> {
-    thread::spawn(move || {
-        tracing::info!("Stderr thread started");
-        let reader = BufReader::new(stderr);
-
-        for line in reader.lines().filter_map(|l| l.ok()) {
-            tracing::debug!("rtl_power: {}", line);
-            if should_stop.load(Ordering::Relaxed) {
-                break;
-            }
-
-            if line.starts_with("Error:") {
-                tracing::warn!("'rtl_power' failed with {}", line);
-                should_stop.store(true, Ordering::Relaxed);
-            } else if line.starts_with("No supported devices found") {
-                tracing::warn!("'rtl_power' failed with {}", line);
-                should_stop.store(true, Ordering::Relaxed);
-            }
-        }
-
-        tracing::info!("Stopping stderr thread");
-    })
-}
-
-fn start_stdout_thread(
-    should_stop: Arc<AtomicBool>,
-    mut command: Child,
-    stdout: ChildStdout,
-    tx: watch::Sender<f64>,
-) -> thread::JoinHandle<()> {
-    thread::spawn(move || {
-        tracing::info!("Stdout thread started");
-        let mut started = false;
-        let reader = BufReader::new(stdout);
-
-        for line in reader.lines().filter_map(|l| l.ok()) {
-            if should_stop.load(Ordering::Relaxed) {
-                break;
-            }
-
-            // Skip date, time and so on ...
-            let values = line
-                .split(", ")
-                .skip(6)
-                .filter_map(|v| v.parse::<f64>().ok())
-                // Integer cast is need here as floats are not ordered.
-                .map(|v| (v * 100.0) as i32);
-            if let Some(val) = values.max() {
-                tx.send((val as f64) / 100.0).unwrap();
-                started = true;
-            }
-        }
-
-        if !started {
-            tracing::warn!("'rtl_power' did not successfully start up!");
-        } else if !should_stop.load(Ordering::Relaxed) {
-            tracing::warn!("'rtl_power' exited early!");
-        }
-
-        end_process(&mut command);
-        tracing::info!("Stopping stdout thread");
-    })
-}
+const FFT_SIZE: usize = 1024;
+const SAMPLE_RATE: u32 = 1_024_000;
+const BIN_SIZE_HZ: usize = SAMPLE_RATE as usize / FFT_SIZE;
 
 pub struct RtlPower {
     control_thread: Option<thread::JoinHandle<()>>,
@@ -175,46 +74,122 @@ impl RtlPower {
         let gain = self.gain;
         let data = self.data.clone();
         let frequency_khz = self.frequency_khz.clone();
-        let should_io_stop = Arc::new(AtomicBool::new(false));
         let should_stop = self.should_stop.clone();
         let tx = self.tx.clone();
 
+        // No need to worry about DC correction. Just move the center
+        // frequency a little bit about target.
+        let offset = SAMPLE_RATE / 8;
+        let center_frequency = frequency_khz.load(Ordering::Relaxed) as u32 * 1_000 + offset;
+
+        let (mut ctl, reader) =
+            rtlsdr_mt::open(0).expect("Could not open RTL-SDR device at index 0.");
+        ctl.set_sample_rate(SAMPLE_RATE).unwrap();
+        ctl.set_center_freq(center_frequency).unwrap();
+        ctl.disable_agc().unwrap();
+        ctl.set_tuner_gain(gain as i32).unwrap();
+
         self.control_thread = Some(thread::spawn(move || {
             tracing::info!("Control thread started");
-            let mut command = start_rtl_power(data.get_frequency_khz(), gain);
-            let mut stderr_thread =
-                start_stderr_thread(should_io_stop.clone(), command.stderr.take().unwrap());
-            let mut stdout = command.stdout.take().unwrap();
-            let mut stdout_thread =
-                start_stdout_thread(should_io_stop.clone(), command, stdout, tx.clone());
+
+            let dsp_thread = start_dsp_thread(reader, tx, should_stop.clone());
 
             while !should_stop.load(Ordering::Relaxed) {
                 let current_freq = frequency_khz.load(Ordering::Relaxed);
                 let new_freq = data.get_frequency_khz();
                 thread::sleep(time::Duration::from_millis(100));
                 if current_freq != new_freq {
-                    should_io_stop.store(true, Ordering::Relaxed);
-                    stderr_thread.join().unwrap();
-                    stdout_thread.join().unwrap();
                     frequency_khz.store(new_freq, Ordering::Relaxed);
-                    should_io_stop.store(false, Ordering::Relaxed);
                     tracing::info!(
                         "Changing frequency from {:.3} MHz to {:.3} MHz",
                         (current_freq as f64) / 1000.0,
                         (new_freq as f64) / 1000.0,
                     );
-                    command = start_rtl_power(new_freq, gain);
-                    stderr_thread =
-                        start_stderr_thread(should_io_stop.clone(), command.stderr.take().unwrap());
-                    stdout = command.stdout.take().unwrap();
-                    stdout_thread =
-                        start_stdout_thread(should_io_stop.clone(), command, stdout, tx.clone());
+                    // No need to worry about DC correction. Just move the center
+                    // frequency a little bit about target.
+                    let center_frequency = new_freq as u32 * 1_000 + offset;
+                    ctl.set_center_freq(center_frequency).unwrap();
                 }
             }
-            should_io_stop.store(true, Ordering::Relaxed);
-            stderr_thread.join().unwrap();
-            stdout_thread.join().unwrap();
+            ctl.cancel_async_read();
+            dsp_thread.join().unwrap();
             tracing::info!("Stopping control thread");
         }));
     }
+}
+
+fn apply_window(complex_signal: &mut [Complex<f64>], window: &[f64]) {
+    for i in 0..window.len() {
+        complex_signal[i] *= window[i];
+    }
+}
+
+fn hann_window(window_buffer: &mut [f64]) {
+    let m = window_buffer.len() as f64;
+    for i in 0..window_buffer.len() {
+        let n = i as f64;
+        window_buffer[i] = 0.5 - 0.5 * (2.0 * PI * n / (m - 1.0)).cos();
+    }
+}
+
+fn start_dsp_thread(
+    mut reader: rtlsdr_mt::Reader,
+    sender: watch::Sender<f64>,
+    should_stop: Arc<AtomicBool>,
+) -> thread::JoinHandle<()> {
+    thread::spawn(move || {
+        tracing::info!("DSP thread started");
+        let mut planner: FftPlanner<f64> = FftPlanner::new();
+        let fft = planner.plan_fft_forward(FFT_SIZE);
+        let mut result = [0.0f64; FFT_SIZE];
+        let mut window = [0.0f64; FFT_SIZE];
+        hann_window(&mut window);
+        let squared_size = (FFT_SIZE as f64).powi(2);
+
+        while !should_stop.load(Ordering::Relaxed) {
+            match reader.read_async(1, 2048, |iq_samples| {
+                let mut complex_signal_vector = iq_samples
+                    .chunks(2)
+                    .map(|pair| Complex {
+                        re: (f64::from(pair[0]) - 127.0) / 127.0,
+                        im: (f64::from(pair[1]) - 127.0) / 127.0,
+                    })
+                    .collect::<Vec<Complex<f64>>>();
+                let complex_signal = complex_signal_vector.deref_mut();
+                apply_window(complex_signal, &window);
+                fft.process(complex_signal);
+
+                for (i, c) in complex_signal.into_iter().enumerate() {
+                    // The signal is shifted by half of the FFT_SIZE.
+                    let index = (i + FFT_SIZE / 2) % FFT_SIZE;
+                    let normalized_magnitude = c.norm_sqr() / squared_size;
+                    let logmag = normalized_magnitude.max(1e-12).log10().min(0.0);
+                    let dbfs = 10.0 * logmag;
+                    result[index] = dbfs;
+                }
+                // The center frequency is one eigthth above the frequency of
+                // interest. So the bins to analyze are at 3/8ths of the
+                // result slice.
+                let center = FFT_SIZE / 8 * 3;
+                // A range of 30 KHz is analyzed.
+                let range = 15_000usize.div_ceil(BIN_SIZE_HZ);
+                let mut peak: f64 = -120.0;
+                for m in result[center - range..center + range].into_iter() {
+                    if *m > peak {
+                        peak = *m;
+                    }
+                }
+
+                sender.send(peak);
+
+                thread::sleep(time::Duration::from_millis(100));
+            }) {
+                Ok(..) => {}
+                Err(..) => {
+                    tracing::warn!("Reading samples failed. Continuing...");
+                }
+            }
+        }
+        tracing::info!("Stopping DSP thread");
+    })
 }
