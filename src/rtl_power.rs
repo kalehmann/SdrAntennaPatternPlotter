@@ -180,7 +180,12 @@ fn start_dsp_thread(
                     }
                 }
 
-                sender.send(peak);
+                match sender.send(peak) {
+                    Ok(..) => {}
+                    Err(err) => {
+                        tracing::warn!("Error sending peak value via channel: {err}");
+                    }
+                };
 
                 thread::sleep(time::Duration::from_millis(100));
             }) {
