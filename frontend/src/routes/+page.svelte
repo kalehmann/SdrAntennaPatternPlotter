@@ -1,4 +1,6 @@
 <script lang="ts">
+    import { appState } from "$lib/state.svelte.ts";
+    import { MeasuredValues } from "$lib/measured_values.svelte.ts";
     import BasicSettings from "$lib/components/BasicSettings.svelte";
     import Calibration from "$lib/components/Calibration.svelte";
     import Evaluation from "$lib/components/Evaluation.svelte";
@@ -10,6 +12,11 @@
     function next() {
         step += 1;
     }
+
+    function startOver() {
+        appState.values = new MeasuredValues();
+        step = 1;
+    }
 </script>
 
 <main class="grow">
@@ -20,7 +27,7 @@
     {:else if step === 3}
         <Measurement {next} />
     {:else}
-        <Evaluation />
+        <Evaluation {startOver} />
     {/if}
 </main>
 <footer class="flex-none mb-5">

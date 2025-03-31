@@ -3,6 +3,11 @@
     import Button from "$lib/components/Button.svelte";
     import GainPattern from "$lib/components/GainPattern.svelte";
 
+    interface Props {
+        startOver: () => void;
+    }
+    let { startOver = () => {} }: Props = $props();
+
     function download(filename: string, data: string): void {
         const el = document.createElement("a");
         el.setAttribute("download", filename);
@@ -107,4 +112,7 @@
 </div>
 <div class="flex flex-row justify-center">
     <Button onclick={onDownloadSvg}>Download SVG</Button>
+</div>
+<div class="flex flex-row justify-center">
+    <Button onclick={startOver}>Start over</Button>
 </div>
