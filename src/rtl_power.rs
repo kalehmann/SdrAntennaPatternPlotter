@@ -163,6 +163,7 @@ fn start_dsp_thread(
                     // The signal is shifted by half of the FFT_SIZE.
                     let index = (i + FFT_SIZE / 2) % FFT_SIZE;
                     let normalized_magnitude = c.norm_sqr() / squared_size;
+		    // Clip the signal between 0 and -120 dBFS
                     let logmag = normalized_magnitude.max(1e-12).log10().min(0.0);
                     let dbfs = 10.0 * logmag;
                     result[index] = dbfs;
