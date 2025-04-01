@@ -13,7 +13,7 @@
     let {
         children,
         done = () => {},
-        measuring_period = 5.0,
+        measuring_period = 2.0,
         start = () => {},
         stop = () => {},
     }: Props = $props();
