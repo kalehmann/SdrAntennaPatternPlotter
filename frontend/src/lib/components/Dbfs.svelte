@@ -26,9 +26,9 @@
 </script>
 
 <span>
-    {dbfs.toFixed(1)} dbFS
+    {dbfs.toFixed(1)} dBFS
     {#if reference !== null}
-        ({dbfs2db(dbfs, reference).toFixed(1)} db<sub>Ref</sub>)
+        ({dbfs2db(dbfs, reference).toFixed(1)} dB<sub>Ref</sub>)
     {/if}
 </span>
 

@@ -35,7 +35,7 @@
         x={radius - 4 - (radius / 4) * i}
         y="4"
     >
-        {0 - (i * values.scale) / 4}db
+        {0 - (i * values.scale) / 4}dB
     </text>
 {/each}
 {#if withRef}

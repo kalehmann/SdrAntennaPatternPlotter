@@ -61,11 +61,11 @@
         {#if appState.values.referenceValue !== null}
             <tspan>Reference antenna: </tspan>
             <tspan fill={colors.reference}>
-                {appState.values.referenceValue.toFixed(1)} dbFS
+                {appState.values.referenceValue.toFixed(1)} dBFS
             </tspan>
         {/if}
         <tspan x="47" text-anchor="end">
-            0 db = {values.maxDbfs.toFixed(1)} dbFS
+            0 dB = {values.maxDbfs.toFixed(1)} dBFS
         </tspan>
     </text>
 </svg>

@@ -87,7 +87,7 @@ export class MeasuredValues {
 
         if (reference !== null) {
             return [
-                ["Angle", "Gain (dbFS)", "dbFS - reference"],
+                ["Angle", "Signal strength (dBFS)", "dBFS - reference"],
                 ...this.values
                     .entries()
                     .map(([angle, dbfs]): [string, string, string] => [
@@ -99,7 +99,7 @@ export class MeasuredValues {
         }
 
         return [
-            ["Angle", "Gain (dbFS)"],
+            ["Angle", "Signal strength (dBFS)"],
             ...this.values
                 .entries()
                 .map(([angle, dbfs]): [string, string] => [

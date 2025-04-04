@@ -31,7 +31,7 @@ export const colors = {
 };
 
 export const dbfs2db = (dbfs: number, ref: number): number => {
-    // dbFS is assumed to be linear to the received power.
+    // dBFS is assumed to be linear to the received power.
     // See https://groups.google.com/g/gqrx/c/hlUl0CEswvE/m/wvsXqNWABQAJ
     return dbfs - ref;
 };
