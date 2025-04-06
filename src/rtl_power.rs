@@ -20,7 +20,7 @@ use rustfft::{num_complex::Complex, FftPlanner};
 use std::f64::consts::PI;
 use std::ops::DerefMut;
 use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time;
 use tokio::sync::watch;
@@ -82,6 +82,8 @@ impl RtlPower {
         let offset = SAMPLE_RATE / 8;
         let center_frequency = frequency_khz.load(Ordering::Relaxed) as u32 * 1_000 + offset;
 
+        let frequency_lock = Arc::new(Mutex::new(false));
+
         let (mut ctl, reader) =
             rtlsdr_mt::open(0).expect("Could not open RTL-SDR device at index 0.");
         ctl.set_sample_rate(SAMPLE_RATE).unwrap();
@@ -92,13 +94,19 @@ impl RtlPower {
         self.control_thread = Some(thread::spawn(move || {
             tracing::info!("Control thread started");
 
-            let dsp_thread = start_dsp_thread(reader, tx, should_stop.clone());
+            let dsp_thread =
+                start_dsp_thread(reader, frequency_lock.clone(), tx, should_stop.clone());
+            let lock = frequency_lock.clone();
 
             while !should_stop.load(Ordering::Relaxed) {
                 let current_freq = frequency_khz.load(Ordering::Relaxed);
                 let new_freq = data.get_frequency_khz();
                 thread::sleep(time::Duration::from_millis(100));
                 if current_freq != new_freq {
+                    ctl.cancel_async_read();
+                    // Acquire the frequency lock before actually changing the
+                    // frequency.
+                    let guard = lock.lock().unwrap();
                     frequency_khz.store(new_freq, Ordering::Relaxed);
                     tracing::info!(
                         "Changing frequency from {:.3} MHz to {:.3} MHz",
@@ -109,6 +117,7 @@ impl RtlPower {
                     // frequency a little bit about target.
                     let center_frequency = new_freq as u32 * 1_000 + offset;
                     ctl.set_center_freq(center_frequency).unwrap();
+                    drop(guard);
                 }
             }
             ctl.cancel_async_read();
@@ -134,6 +143,7 @@ fn hann_window(window_buffer: &mut [f64]) {
 
 fn start_dsp_thread(
     mut reader: rtlsdr_mt::Reader,
+    frequency_lock: Arc<Mutex<bool>>,
     sender: watch::Sender<f64>,
     should_stop: Arc<AtomicBool>,
 ) -> thread::JoinHandle<()> {
@@ -147,6 +157,9 @@ fn start_dsp_thread(
         let squared_size = (FFT_SIZE as f64).powi(2);
 
         while !should_stop.load(Ordering::Relaxed) {
+            // Acquire the frequency lock, so that no frequency change will
+            // occur while samples are being read.
+            let guard = frequency_lock.lock().unwrap();
             match reader.read_async(1, 2048, |iq_samples| {
                 let mut complex_signal_vector = iq_samples
                     .chunks(2)
@@ -163,7 +176,7 @@ fn start_dsp_thread(
                     // The signal is shifted by half of the FFT_SIZE.
                     let index = (i + FFT_SIZE / 2) % FFT_SIZE;
                     let normalized_magnitude = c.norm_sqr() / squared_size;
-		    // Clip the signal between 0 and -120 dBFS
+                    // Clip the signal between 0 and -120 dBFS
                     let logmag = normalized_magnitude.max(1e-12).log10().min(0.0);
                     let dbfs = 10.0 * logmag;
                     result[index] = dbfs;
@@ -190,11 +203,17 @@ fn start_dsp_thread(
 
                 thread::sleep(time::Duration::from_millis(100));
             }) {
-                Ok(..) => {}
+                Ok(..) => {
+                    tracing::debug!("Reading samples interrupted.");
+                }
                 Err(..) => {
                     tracing::warn!("Reading samples failed. Continuing...");
                 }
             }
+            drop(guard);
+            // Sleep a short amount of time to give other threads a chance to
+            // acquire the lock.
+            thread::sleep(time::Duration::from_millis(100));
         }
         tracing::info!("Stopping DSP thread");
     })
