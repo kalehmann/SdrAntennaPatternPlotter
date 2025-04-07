@@ -3,6 +3,8 @@
 A handy tool to plot the radiation pattern of an antenna using an RTL-SDR and a
 signal source.
 
+![A screenshot of the tools web application](./docs/screenshot.jpg)
+
 ## Usage
 
 1. Wire up an antenna to the RTL-SDR and connect it to your laptop
