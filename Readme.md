@@ -1,4 +1,4 @@
-# SDR Gain Tool
+# SDR Antenna Pattern Plotter
 
 ## Development
 
@@ -42,5 +42,5 @@ docker compose run --rm cargo add <crate>
 # Run the tool with custom arguments (only port 8000 is exposed by default)
 docker compose run --rm --service-ports cargo run -- --address=0.0.0.0
 # Run the tool with the frontend exposed to https://0.0.0.0:8000
-docker compose run --rm --service-ports sdr_gain_tool
+docker compose run --rm --service-ports sdr_antenna_pattern_plotter
 ```

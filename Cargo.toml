@@ -1,5 +1,5 @@
 [package]
-name = "sdr_gain_tool"
+name = "sdr_antenna_pattern_plotter"
 version = "0.1.0"
 description = "Measure antenna patterns."
 edition = "2021"

@@ -28,7 +28,7 @@ services:
         cargo:
                 <<: *rust-service
                 entrypoint: "/usr/local/cargo/bin/cargo"
-        sdr_gain_tool:
+        sdr_antenna_patter_plotter:
                 <<: *rust-service
                 entrypoint:
                         - "/usr/local/cargo/bin/cargo"

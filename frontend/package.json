@@ -1,8 +1,8 @@
 {
-    "name": "sdr_gain_tool-frontend",
+    "name": "sdr-antenna-pattern-plotter-frontend",
     "version": "0.0.1",
     "author": "Karsten Lehmann <mail@kalehmann.de>",
-    "description": "Web-frontend for sdr_gain_tool",
+    "description": "Web-frontend for the SdrAntennaPatternPlotter",
     "license": "AGPL-3.0-or-later",
     "scripts": {
         "build": "vite build",
