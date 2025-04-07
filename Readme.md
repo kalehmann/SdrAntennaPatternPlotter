@@ -1,5 +1,20 @@
 # SDR Antenna Pattern Plotter
 
+A handy tool to plot the radiation pattern of an antenna using an RTL-SDR and a
+signal source.
+
+## Usage
+
+1. Wire up an antenna to the RTL-SDR and connect it to your laptop
+1. Make sure the laptop is in the same wireless network as your mobile phone.
+1. Start up the SDR antenna pattern plotter on the laptop.
+1. Visit the Web-application in the browser of your mobile phone
+1. Set your desired frequency and number of measurements in the Web-application.
+1. Optionally connect the signal source to an reference antenna and perform the
+    calibration.
+1. Connect the signal source to your actual antenna and turn it as described in
+    the Web-application while measuring the radiated signals strength.
+
 ## Development
 
 The project is split into two parts:
